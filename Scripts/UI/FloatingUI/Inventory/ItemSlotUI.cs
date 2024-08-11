@@ -1,6 +1,7 @@
-using Event;
+using DataSystem;
+using EventSystem;
+using InputSystem;
 using ItemSystem.Inventory;
-using Manager;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -23,6 +24,8 @@ namespace UI.FloatingUI.Inventory
         private Vector3 _defaultScale = new(1f, 1f, 1f);
         private Vector2 _defaultSizeDelta = new Vector3(32, 32);
 
+        private GameObject _emptyPrefab;
+
         public override UIType GetUIType() => UIType.ComponentUI;
         protected override bool HasEnterExitTrigger => true;
 
@@ -32,6 +35,8 @@ namespace UI.FloatingUI.Inventory
 
             _activatedSlot ??= ResourceManager.GetSprite("UI_Inventory_Slot");
             _deactivatedSlot ??= ResourceManager.GetSprite("UI_Inventory_Slot_Beclosed");
+            
+            _emptyPrefab = ResourceManager.GetPrefab(Constants.Path.EmptyPrefabPath);
             
             EventManager.AddEventTrigger(gameObject, EventTriggerType.BeginDrag, _ => OnBeginDragItem());
             EventManager.AddEventTrigger(gameObject, EventTriggerType.Drag, _ => OnDragItem());
@@ -116,12 +121,11 @@ namespace UI.FloatingUI.Inventory
                 return;
             }
             MouseData.DragBeginSlot = _slotData;
-            
-            var dragImageObject = new GameObject();
+
+            var dragImageObject = Instantiate(_emptyPrefab, UIManager.Instance.OtherCanvas);
             MouseData.DraggingItem = dragImageObject;
 
             MouseData.DraggingItemTransform = dragImageObject.AddComponent<RectTransform>();
-            dragImageObject.transform.SetParent(transform.parent);
             dragImageObject.transform.localScale = _defaultScale;
             MouseData.DraggingItemTransform.sizeDelta = _defaultSizeDelta;
             
@@ -142,7 +146,7 @@ namespace UI.FloatingUI.Inventory
             MouseData.DraggingItem.GetComponent<RectTransform>().position = Input.mousePosition;
         }
 
-        protected virtual void OnEndDragItem()
+        private void OnEndDragItem()
         {
             Destroy(MouseData.DraggingItem);
 
@@ -160,27 +164,35 @@ namespace UI.FloatingUI.Inventory
                     return;
                 }
                 
-                if (MouseData.MouseHoveredSlot.ParentType == InventoryType.QuickSlot)
-                {
-                    if (slot.ParentType == InventoryType.Player)
-                    {
-                        var quickSlot = MouseData.MouseHoveredSlot as QuickSlot;
-                        quickSlot.AllocateItem(slot.Item, -1);
-                        quickSlot.SyncItemAmount();
-                    }
-                }
-                else
-                {
-                    MouseData.MouseHoveredSlot.SwapItem(slot);
-                }
+                OnSwapItem(slot);
                 EventManager.OnNext(Message.OnUpdateInventory, MouseData.MouseHoveredSlot.ParentType);
             }
-            // TODO: Disable until Design confirmed
-            // else if (MouseData.MouseHoveredInventory == null)
-            // {
-            //     slot.ClearItem();
-            // }
+            // TODO: Disable remove items until Design confirmed
+            else if (MouseData.MouseHoveredInventory == null)
+            {
+                if (slot.ParentType == InventoryType.QuickSlot)
+                {
+                    slot.ClearItem();
+                }
+            }
             EventManager.OnNext(Message.OnUpdateInventory, slot.ParentType);
+        }
+
+        protected virtual void OnSwapItem(ItemSlot slot)
+        {
+            if (MouseData.MouseHoveredSlot.ParentType == InventoryType.QuickSlot)
+            {
+                if (slot.ParentType == InventoryType.Player)
+                {
+                    var quickSlot = MouseData.MouseHoveredSlot as QuickSlot;
+                    quickSlot.AllocateItem(slot.Item, -1);
+                    quickSlot.SyncItemAmount();
+                }
+            }
+            else
+            {
+                MouseData.MouseHoveredSlot.SwapItem(slot);
+            }
         }
     }
 }

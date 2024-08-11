@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using DataSystem.FileIO;
 using ItemSystem.Produce;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace DataSystem.Database
 {
@@ -16,7 +16,6 @@ namespace DataSystem.Database
         //group DB.
         [Description("ProducerLevelData[producerType][producerLevel]")]
         private static readonly Dictionary<ProducerType, Dictionary<int, ProducerAndRecipe>> ProducerLevelData = new();
-        private static readonly Dictionary<ProducerType, List<ItemRecipe>> ItemRecipeData = new();
         
         [Serializable]
         private class ProducerAndRecipe
@@ -34,52 +33,6 @@ namespace DataSystem.Database
         // <Getter Section>
         // * This methods returns data or copy data
         #region GetMethods
-
-        public static ItemRecipe GetItemRecipe(ProducerType type, int recipeId)
-        {
-            if (ItemRecipeData.TryGetValue(type, out var recipeList))
-            {
-                foreach (var recipe in recipeList)
-                {
-                    if (recipe.id == recipeId)
-                    {
-                        return recipe;
-                    }
-                }
-            }
-
-            Debug.LogWarning($"[Database] GetItemRecipe(): Recipe dose not exist. id:[{recipeId}]");
-            return null;
-        }
-
-        public static Recipe GetUpgradeRecipe(ProducerType type, int level)
-        {
-            if (ProducerLevelData.TryGetValue(type, out var dictionary))
-            {
-                if (dictionary.TryGetValue(level, out var data))
-                {
-                    return data.recipe;
-                }
-            }
-
-            Debug.LogWarning($"[Database] GetUpgradeRecipe(): Recipe dose not exist. type:[{type}], level[{level}]");
-            return null;
-        }
-        
-        public static Recipe GetUpgradeRecipe(int producerId)
-        {
-            var producer = GetProducer(producerId);
-            if (ProducerLevelData.TryGetValue(producer.type, out var dictionary))
-            {
-                if (dictionary.TryGetValue(producer.level, out var data))
-                {
-                    return data.recipe;
-                }
-            }
-
-            Debug.LogWarning($"[Database] GetUpgradeRecipe(): Recipe dose not exist. id:[{producerId}]");
-            return null;
-        }
         
         public static Producer GetProducer(ProducerType type, int level)
         {
@@ -103,17 +56,6 @@ namespace DataSystem.Database
             }
 
             Debug.LogWarning($"[Database] GetProducer(): Recipe dose not exist. id:[{id}]");
-            return null;
-        }
-
-        public static List<ItemRecipe> GetItemRecipeList(ProducerType type)
-        {
-            if (ItemRecipeData.TryGetValue(type, out var recipeList))
-            {
-                return recipeList;
-            }
-
-            Debug.LogWarning($"[Database] GetRecipeList(): Producer dose not exist. type:[{type}]");
             return null;
         }
 
@@ -150,7 +92,24 @@ namespace DataSystem.Database
                         ,col[4]
                         , int.Parse(col[5])
                     );
-                    var recipe = new Recipe(id);
+
+                    ProducerData[id] = data;
+
+                    if (producerType == ProducerType.Field)
+                    {
+                        for (var i = 6; i < col.Count; i++)
+                        {
+                            if (col[i].Length == 0)
+                            {
+                                continue;
+                            }
+
+                            data.recipeIDs.Add(int.Parse(col[i]));
+                        }
+                        continue;
+                    }
+
+                    var recipe = new Recipe(id, true);
                     for (var i = 6; i < col.Count; i += 2)
                     {
                         if (col[i].Length == 0)
@@ -160,8 +119,6 @@ namespace DataSystem.Database
 
                         recipe.AddMaterial(int.Parse(col[i]), int.Parse(col[i + 1]));
                     }
-
-                    ProducerData[id] = data;
                     
                     if (!ProducerLevelData.ContainsKey(producerType))
                     {
@@ -176,50 +133,29 @@ namespace DataSystem.Database
             }
         }
 
-        private static void LoadItemRecipeData()
+        private static void InitProducerData()
         {
-            var fileName = "Recipe_table";
-            var table = CSVReader.ReadFile(fileName);
-            if (table.Count == 0)
+            foreach (var recipe in ItemRecipeData.Values)
             {
-                Debug.LogError("[Database] LoadItemRecipeData(): CSV Read Failed");
-                return;
-            }
-
-            try
-            {
-                ItemRecipeData.Clear();
-                
-                foreach (var col in table)
+                if (recipe.producerType == ProducerType.Field)
                 {
-                    var producerType = (ProducerType)Enum.Parse(typeof(ProducerType), col[1]);
-                    var data = new ItemRecipe(
-                        int.Parse(col[0]),
-                        producerType
-                        , int.Parse(col[2])
-                        , int.Parse(col[3])
-                        ,int.Parse(col[4])
-                    );
-                    for (var i = 5; i < col.Count; i += 2)
-                    {
-                        if (col[i].Length == 0)
-                        {
-                            break;
-                        }
-
-                        data.AddMaterial(int.Parse(col[i]), int.Parse(col[i + 1]));
-                    }
-                    
-                    if (ItemRecipeData.ContainsKey(producerType) == false)
-                    {
-                        ItemRecipeData.Add(producerType, new List<ItemRecipe>());
-                    }
-                    ItemRecipeData[producerType].Add(data);
+                    continue;
                 }
+
+                var producer = GetProducer(recipe.producerType, recipe.producerLevel);
+                if (producer == null)
+                {
+                    continue;
+                }
+                producer.recipeIDs.Add(recipe.id);
             }
-            catch (Exception e)
+
+            ItemRecipeListById.Clear();
+            foreach (var producer in ProducerData.Values)
             {
-                Debug.LogError("[Database] LoadItemRecipeData(): Product Data conversion failed: " + e);
+                ItemRecipeListById.Add(producer.id, new List<ItemRecipe>());
+                var list = ItemRecipeListById[producer.id];
+                list.AddRange(producer.recipeIDs.Select(GetItemRecipe));
             }
         }
 

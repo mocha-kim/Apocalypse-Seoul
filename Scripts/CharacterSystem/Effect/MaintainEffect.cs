@@ -1,12 +1,14 @@
-using CharacterSystem.Character;
+using CharacterSystem.Stat;
 using Core.Interface;
-using Event;
-using Manager;
+using UnityEngine;
 
 namespace CharacterSystem.Effect
 {
     public class MaintainEffect : Effect
     {
+        private EffectController _controller;
+        private Coroutine _durationCoroutine;
+        
         public MaintainEffect(int id, EffectType type, int duration, int coolTime) : base(id, type, coolTime)
         {
             IsPermanent = duration <= 0;
@@ -28,43 +30,49 @@ namespace CharacterSystem.Effect
             var newEffect = IsPermanent
                 ? new MaintainEffect(ID, Type, coolTime)
                 : new MaintainEffect(ID, Type, duration, coolTime);
-            foreach (var pair in EffectValues)
-            {
-                newEffect.EffectValues[pair.Key] = pair.Value;
-            }
+            newEffect.AttributeType = AttributeType;
+            newEffect.AttributeValue = new EffectValue(AttributeValue);
 
             return newEffect;
         }
 
         public override void EnableEffect(IAffectable target, EffectController controller)
         {
-            base.EnableEffect(target, controller);
+            if (target == null || AttributeType == AttributeType.None)
+            {
+                Debug.Log($"[MaintainEffect] EnableEffect(): Cannot enable effect {ID}, {Type}");
+                return;
+            }
 
+            _controller = controller;
+            base.EnableEffect(target, controller);
+            
             if (!IsPermanent)
             {
-                controller.StartCoroutine(StartDurationTimer());
+                _durationCoroutine = controller.StartCoroutine(StartDurationTimer());
             }
-
-            foreach (var type in EffectValues.Keys)
-            {
-                EffectValues[type].CalculateEffectValue(Target.GetReferenceValue(type));
-                Target.Affect(type, EffectValues[type].EffectedValue);
-            }
+            
+            AttributeValue.CalculateEffectValue(target.GetReferenceValue(AttributeType));
+            target.Affect(AttributeType, AttributeValue.EffectedValue);
         }
 
         public override void DisableEffect()
         {
+            if (Target == null || !IsEnabled)
+            {
+                return;
+            }
+
+            var target = Target;
             base.DisableEffect();
-
-            foreach (var pair in EffectValues)
+            
+            if (!IsPermanent)
             {
-                Target.Affect(pair.Key, -pair.Value.EffectedValue);
+                _controller.StopCoroutine(_durationCoroutine);
             }
-
-            if (Target.CharacterType == CharacterType.Player)
-            {
-                EventManager.OnNext(Message.OnPlayerEffectChanged);
-            }
+            _controller = null;
+            
+            target.Affect(AttributeType, -AttributeValue.EffectedValue);
         }
     }
 }

@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using DataSystem;
 using DataSystem.Database;
-using Event;
-using Manager;
+using EventSystem;
+using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace ItemSystem.Produce
 {
@@ -16,6 +20,8 @@ namespace ItemSystem.Produce
         public string description;
         public string spritePath;
 
+        public List<int> recipeIDs = new();
+
         public Producer(int id, ProducerType type, string name, string description, string spritePath, int level)
         {
             this.id = id;
@@ -27,10 +33,16 @@ namespace ItemSystem.Produce
             this.spritePath = spritePath;
         }
 
-        public void Produce(int recipeId)
+        public virtual void Produce(int recipeId)
         {
-            var recipe = Database.GetItemRecipe(type, recipeId);
-            if (recipe == null || recipe.producerLevel > level || !recipe.IsProducible())
+            var i = recipeIDs.FirstOrDefault(value => value == recipeId);
+            if (i == 0)
+            {
+                return;
+            }
+
+            var recipe = Database.GetItemRecipe(i);
+            if (recipe == null || !recipe.isActive || !recipe.IsProducible())
             {
                 return;
             }
@@ -44,7 +56,8 @@ namespace ItemSystem.Produce
 
         public void Upgrade()
         {
-            var recipe = Database.GetUpgradeRecipe(id);
+            var recipe = Database.GetUpgradeRecipe(type, level);
+            Debug.Log(recipe);
             if (recipe == null || !recipe.IsProducible())
             {
                 return;
@@ -62,8 +75,17 @@ namespace ItemSystem.Produce
 
         public override string ToString()
         {
-            return "Producer: id(" + id + "type(" + type + "), name(" + name + "), level(" + level +
-                   "), description(" + description + ") sprite path(" + spritePath + ")";
+            var str = $"Producer: id({id}), type({type}), name({name}), level({level}), description({description}) sprite path({spritePath})";
+            if (recipeIDs.Count > 0)
+            {
+                str += "\n> recipe Ids(";
+                foreach (var i in recipeIDs)
+                {
+                    str += i + " ";
+                }
+                str += ")";
+            }
+            return str;
         }
     }
 }

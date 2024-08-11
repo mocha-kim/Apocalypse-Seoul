@@ -1,8 +1,9 @@
+using System;
 using CharacterSystem.Effect;
 using CharacterSystem.Stat;
 using DataSystem;
-using Event;
-using Manager;
+using EventSystem;
+using UnityEngine;
 
 namespace CharacterSystem.Character.Player
 {
@@ -13,6 +14,7 @@ namespace CharacterSystem.Character.Player
             base.Awake();
             
             EventManager.Subscribe(gameObject, Message.OnPlayerAttributeChanged, _ => TracePlayerAttribute());
+            EventManager.Subscribe(gameObject, Message.OnPlayerAffected, Affect);
         }
 
         private void Start()
@@ -42,6 +44,7 @@ namespace CharacterSystem.Character.Player
                     }
                     DisableEffect(EffectType.Starving);
                     EnableEffect(EffectType.Full);
+                    EnableEffect(EffectType.Moderate);
                     break;
                 case >= Constants.Effect.ModerateReferenceValue:
                     if (thirst <= Constants.Effect.ThirstyReferenceValue)
@@ -82,6 +85,22 @@ namespace CharacterSystem.Character.Player
                     DisableEffect(EffectType.Thirsty);
                     break;
             }
+        }
+
+        private void Affect(EventManager.Event e)
+        {
+            Effect.Effect effect;
+            try
+            {
+                effect = (Effect.Effect)e.Args[0];
+            }
+            catch
+            {
+                Debug.LogError("[PlayerEffectController] Affect(): Invalid Event Argument");
+                return;
+            }
+            
+            EnableEffect(effect);
         }
     }
 }

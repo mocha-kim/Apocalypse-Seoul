@@ -1,5 +1,6 @@
 using System.Collections;
 using DataSystem;
+using EventSystem;
 using UnityEngine;
 
 namespace EnvironmentSystem.Area
@@ -24,6 +25,8 @@ namespace EnvironmentSystem.Area
             {
                 return;
             }
+            
+            EventManager.OnNext(Message.OnAreaEnter);
             foreach (var objects in _objectsToHide)
             {
                 objects.SetActive(false);
@@ -36,6 +39,8 @@ namespace EnvironmentSystem.Area
             {
                 return;
             }
+            
+            EventManager.OnNext(Message.OnAreaExit);
             foreach (var objects in _objectsToHide)
             {
                 objects.SetActive(true);

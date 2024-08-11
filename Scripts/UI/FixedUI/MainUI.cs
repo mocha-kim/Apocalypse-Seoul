@@ -1,7 +1,8 @@
 using CharacterSystem.Stat;
 using DataSystem;
-using Event;
-using Manager;
+using EnvironmentSystem;
+using EnvironmentSystem.Time;
+using EventSystem;
 using TMPro;
 using UniRx;
 using UniRx.Triggers;
@@ -39,6 +40,12 @@ namespace UI.FixedUI
             EventManager.Subscribe(gameObject, Message.OnPlayerAttributeChanged, _ => UpdateSliders());
             EventManager.Subscribe(gameObject, Message.OnReadyMapMove, OnReadyMapMove);
             
+            debugText.gameObject.SetActive(false);
+            moveSceneButton.gameObject.SetActive(false);
+            
+            UpdateTimer();
+            UpdateSliders();
+            
             base.Open();
         }
 
@@ -70,8 +77,7 @@ namespace UI.FixedUI
             timeText.text = TimeManager.GetTimeString();
             dayText.text = TimeManager.GetDayString();
 
-            debugText.text = "";
-            // debugText.text = Stat.GetStatInfo();
+            debugText.text = Stat.GetStatInfo();
         }
         
         private void UpdateSliders()

@@ -20,13 +20,11 @@ namespace CharacterSystem.Character.Enemy.State
         
         private bool _isChaseable;
         
-        private Animator _animator;
         private int _hashAttack = Animator.StringToHash("Attack");
         private int _hashAttackIndex = Animator.StringToHash("AttackIndex"); // Prepared for multiple attack animations
 
         public override void OnInitialized()
         {
-            _animator = Context.Animator;
             _attackable = Context.GetComponent<IAttackable>();
         }
 
@@ -41,12 +39,12 @@ namespace CharacterSystem.Character.Enemy.State
             
             _isChaseable = StateMachine.HasState<ChaseState>();
             
-            if (_animator == null)
+            if (Animator == null)
             {
                 return;
             }
-            _animator.SetInteger(_hashAttackIndex, _attackable.CurrentAttackBehavior.animationIndex);
-            _animator.SetTrigger(_hashAttack);
+            Animator.SetInteger(_hashAttackIndex, _attackable.CurrentAttackBehavior.animationIndex);
+            Animator.SetTrigger(_hashAttack);
 
             _coolTime = _attackable.CurrentAttackBehavior.coolTime;
             _attackDelay = _attackable.CurrentAttackBehavior.attackDelay;

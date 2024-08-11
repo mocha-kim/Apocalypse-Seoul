@@ -52,7 +52,7 @@ namespace DataSystem.Database
         // <Data Load Section>
         // * This methods load data from csv file
         #region LoadMethods
-        
+
         private static void LoadEffectData()
         {
             var fileName = "Effect_table";
@@ -62,7 +62,7 @@ namespace DataSystem.Database
                 Debug.LogError("[Database] LoadEffectData(): CSV Read Failed");
                 return;
             }
-            
+
             try
             {
                 EffectData.Clear();
@@ -73,67 +73,38 @@ namespace DataSystem.Database
                     {
                         continue;
                     }
-                    
-                    int id = int.Parse(col[0]);
-                    int classType = int.Parse(col[2]);  // 0:Instant, 1:Dot, 2:Maintain
-                    Effect data;
-                    switch (classType)
-                    {
-                        case 0:
-                        {
-                            data = new InstantEffect(
-                                id,
-                                (EffectType)Enum.Parse(typeof(EffectType), col[1])
-                            );
-                        }
-                            break;
-                        case 1:
-                        {
-                            data = new DotEffect(
-                                id,
-                                (EffectType)Enum.Parse(typeof(EffectType), col[1]),
-                                int.Parse(col[3]),
-                                int.Parse(col[4])
-                            );
-                        }
-                            break;
-                        case 2:
-                        {
-                            data = new MaintainEffect(
-                                id,
-                                (EffectType)Enum.Parse(typeof(EffectType), col[1]),
-                                int.Parse(col[3]),
-                                int.Parse(col[4])
-                            );
-                        }
-                            break;
-                        default:
-                            continue;
-                    }
-                    
-                    for (var i = 5; i < col.Count; i += 2)
-                    {
-                        if (col[i].Length == 0)
-                        {
-                            break;
-                        }
 
-                        var isFloat = float.Parse(col[i + 1]) % 1 != 0;
-                        if (isFloat)
-                        {
-                            data.AddEffect((AttributeType)int.Parse(col[i]), float.Parse(col[i + 1]));
-                        }
-                        else
-                        {
-                            data.AddEffect((AttributeType)int.Parse(col[i]),int.Parse(col[i + 1]));
-                        }
+                    int id = int.Parse(col[0]);
+                    EffectType effectType = (EffectType)Enum.Parse(typeof(EffectType), col[1]);
+                    int classType = int.Parse(col[2]); // 0:Instant, 1:Dot, 2:Maintain
+                    Effect data = classType switch
+                    {
+                        0 => new InstantEffect(id, effectType),
+                        1 => new DotEffect(id, effectType, int.Parse(col[3]), int.Parse(col[4])),
+                        2 => new MaintainEffect(id, effectType, int.Parse(col[3]), int.Parse(col[4])),
+                        _ => null
+                    };
+                    if (data == null)
+                    {
+                        continue;
                     }
+                    
+                    var isFloat = float.Parse(col[6]) % 1 != 0;
+                    if (isFloat)
+                    {
+                        data.SetEffect((AttributeType)int.Parse(col[5]), float.Parse(col[6]));
+                    }
+                    else
+                    {
+                        data.SetEffect((AttributeType)int.Parse(col[5]), int.Parse(col[6]));
+                    }
+
                     EffectData.Add(id, data);
                 }
             }
             catch (Exception e)
             {
-                    Debug.LogError("[Database] LoadEffectData(): Effect Object conversion failed: " + e);
+                Debug.LogError("[Database] LoadEffectData(): Effect Object conversion failed: " + e);
             }
         }
 

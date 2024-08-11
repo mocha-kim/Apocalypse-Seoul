@@ -1,19 +1,25 @@
 using CharacterSystem.Character.Enemy.State;
-using CharacterSystem.Stat;
 using DataSystem;
+using UnityEngine;
 
 namespace CharacterSystem.Character.Enemy
 {
     public class PatrolEnemyCharacter : DefaultEnemyCharacter
     {
-        protected override void Start()
-        {
-            base.Start();
+        [SerializeField] private Vector3[] _patrolPoints;
 
-            StateMachine.AddState(
-                new PatrolState(Constants.Character.PatrolRange, transform.position
-            ));
-            StateMachine.Refresh();
+        protected override void InitStateMachine()
+        {
+            base.InitStateMachine();
+            
+            if (_patrolPoints.Length > 0)
+            {
+                StateMachine.AddState(new PointPatrolState(_patrolPoints));
+            }
+            else
+            {
+                StateMachine.AddState(new RandomPatrolState(Constants.Character.PatrolRange, transform.position));
+            }
         }
     }
 }

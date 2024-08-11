@@ -1,4 +1,3 @@
-using CharacterSystem.Character.Combat.AttackBehavior;
 using Core.Interface;
 using DataSystem;
 using EnvironmentSystem.Camera;
@@ -7,38 +6,27 @@ using Vector2 = UnityEngine.Vector2;
 
 namespace CharacterSystem.Character.Player
 {
-    [RequireComponent(typeof(LineRenderer))]
+    //[RequireComponent(typeof(LineRenderer))]
     public sealed class PlayerAttackPainter : MonoBehaviour
     {
-        private RaycastHit2D _aimHit;
+        private Transform _context;
+        private IAttackable _attackable;
 
-        private IAttackable _playerAttackable;
         private LayerMask _targetLayer;
 
+        private RaycastHit2D _aimHit;
         private LineRenderer _aimLineRenderer;
 
-        private Transform _context;
+        [SerializeField] private GameObject _rangePainter;
+
         private Vector3 MousePosition => MainCamera.GetMouseWorldPosition();
 
         private void Awake()
         {
             _context = transform.parent;
+            _attackable = _context.GetComponent<IAttackable>();
 
-            _playerAttackable = _context.GetComponent<IAttackable>();
-            _aimLineRenderer = GetComponent<LineRenderer>();
-        }
-
-        private void Update()
-        {
-            switch (_playerAttackable.CurrentAttackBehavior)
-            {
-                case HitScanSingleAttackBehavior attackBehavior:
-                    DrawAim(attackBehavior);
-                    break;
-                case ColliderAttackBehavior:
-                    DrawCircularSector();
-                    break;
-            }
+            _aimLineRenderer = GetComponentInChildren<LineRenderer>();
         }
 
         public void Init(string[] targetMaskStrings)
@@ -46,28 +34,47 @@ namespace CharacterSystem.Character.Player
             _targetLayer = LayerMask.GetMask(targetMaskStrings) | (1 << Constants.Layer.Obstacle);
         }
 
-        private void DrawAim(HitScanSingleAttackBehavior attackBehavior)
+        public void DrawAim()
         {
-            var startPoint = attackBehavior.StartPoint;
-            var range = attackBehavior.range;
-            _aimHit = Physics2D.Raycast(startPoint, MousePosition - startPoint, range, _targetLayer);
+            var startPoint = _attackable.CurrentAttackBehavior.StartPoint;
+            var direction = MousePosition - startPoint;
+            var distance = Vector2.Distance(startPoint, MousePosition);
+            var range = _attackable.CurrentAttackBehavior.Range;
+
+            _aimHit = Physics2D.Raycast(startPoint, direction, Mathf.Min(range, distance), _targetLayer);
             if (_aimHit)
             {
                 _aimLineRenderer.SetPosition(1, _aimHit.point);
             }
             else
             {
-                var distance = Vector2.Distance(startPoint, MousePosition);
-                var direction = MousePosition - startPoint;
-                var clampedPosition = (Vector3)((Vector2)direction).normalized * attackBehavior.range + startPoint;
+                var clampedPosition = (Vector3)((Vector2)direction).normalized * range + startPoint;
                 _aimLineRenderer.SetPosition(1, distance < range ? (Vector2)MousePosition : clampedPosition);
             }
+
             _aimLineRenderer.SetPosition(0, startPoint);
         }
 
-        private void DrawCircularSector()
+        public void StartDrawAim(bool istrue)
+        {
+            _aimLineRenderer.enabled = istrue;
+        }
+
+        public void StartDrawRange(bool istrue)
+        {
+            _rangePainter.SetActive(istrue);
+        }
+
+        public void DrawCircularSector()
         {
 
+        }
+
+        public void DrawRange()
+        {
+            Vector2 NormalizedMouseVector = (MousePosition - _context.position).normalized;
+            _rangePainter.transform.rotation = Quaternion.Euler(0, 0,
+                Quaternion.FromToRotation(Vector3.up, NormalizedMouseVector).eulerAngles.z);
         }
     }
 }

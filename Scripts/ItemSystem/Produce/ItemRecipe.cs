@@ -1,6 +1,6 @@
 using System;
+using DataSystem;
 using DataSystem.Database;
-using Manager;
 
 namespace ItemSystem.Produce
 {
@@ -16,8 +16,8 @@ namespace ItemSystem.Produce
 
         private Item.Item _product;
 
-        public ItemRecipe(int id, ProducerType producerType, int producerLevel, int productId, int productAmount)
-            : base(id)
+        public ItemRecipe(int id, bool isActive, ProducerType producerType, int producerLevel, int productId, int productAmount)
+            : base(id, isActive)
         {
             this.producerType = producerType;
             this.producerLevel = producerLevel;

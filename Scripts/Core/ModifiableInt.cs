@@ -1,12 +1,13 @@
 using System;
+using Newtonsoft.Json;
 
 namespace Core
 {
     [Serializable]
     public class ModifiableInt
     {
-        private int _baseValue;
-        private int _modifiedValue;
+        [JsonProperty] private int _baseValue;
+        [JsonProperty] private int _modifiedValue;
 
         public int BaseValue
         {

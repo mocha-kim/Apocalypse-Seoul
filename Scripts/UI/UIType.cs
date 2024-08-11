@@ -4,6 +4,7 @@ namespace UI
     {
         MainUI,
         SettingUI,
+        SaveLoadUI,
         
         PlayerInventoryUI,
         StorageUI,
@@ -12,7 +13,8 @@ namespace UI
         MapUI,
         ToastUI,
         
-        CraftTableUI,
+        ProducerUI,
+        FieldProducerUI,
         ProducerUpgradeUI,
         
         EventUI,

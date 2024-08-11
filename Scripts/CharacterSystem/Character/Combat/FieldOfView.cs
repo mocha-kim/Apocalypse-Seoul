@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Core.Interface;
+using DataSystem;
 using UnityEngine;
 
 namespace CharacterSystem.Character.Combat
@@ -34,11 +36,37 @@ namespace CharacterSystem.Character.Combat
             StartCoroutine(FindTargetsWithDelay());
         }
 
-        public void SetViewFactors(float viewRadius, float viewAngle, string[] targetLayerNames)
+        public void SetViewFactors(float viewRadius, float viewAngle, int targetLayerMask)
         {
             ViewRadius = viewRadius;
             ViewAngle = viewAngle;
-            _targetMask = LayerMask.GetMask(targetLayerNames);
+            _targetMask = targetLayerMask;
+        }
+        
+        public void SetIdleViewFactors(AttackType type, int targetLayerMask)
+        {
+            switch (type)
+            {
+                case AttackType.RangeSingle:
+                case AttackType.Projectile:
+                    SetViewFactors(Constants.Combat.FOVIdleRadius[type], Constants.Combat.FOVIdleAngle[type], targetLayerMask);
+                    break;
+                default:
+                    return;
+            }
+        }
+        
+        public void SetDetectViewFactors(AttackType type, int targetLayerMask)
+        {
+            switch (type)
+            {
+                case AttackType.RangeSingle:
+                case AttackType.Projectile:
+                    SetViewFactors(Constants.Combat.FOVDetectRadius[type], Constants.Combat.FOVDetectAngle[type], targetLayerMask);
+                    break;
+                default:
+                    return;
+            }
         }
 
         private IEnumerator FindTargetsWithDelay()
@@ -60,6 +88,7 @@ namespace CharacterSystem.Character.Combat
             foreach (var targetCollider in targetsInViewRadius)
             {            
                 var target = targetCollider.transform;
+                
                 // Check Target is in ViewAngle
                 var direction = (target.position - transform.position).normalized;
                 if (!(Vector3.Angle(Forward, direction) < ViewAngle / 2))
@@ -70,6 +99,15 @@ namespace CharacterSystem.Character.Combat
                 // Check Target is in View(not obscured by obstacles)
                 var distance = Vector3.Distance(transform.position, target.position);
                 if (Physics2D.Raycast(transform.position, direction, distance, _obstacleMask))
+                {
+                    continue;
+                }
+
+                if (!target.TryGetComponent<IDamageable>(out var damageable))
+                {
+                    damageable = target.GetComponent<HitBox>()?.Damageable;
+                }
+                if (damageable is not { IsAlive: true })
                 {
                     continue;
                 }

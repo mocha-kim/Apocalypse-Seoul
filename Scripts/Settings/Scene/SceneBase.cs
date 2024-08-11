@@ -1,7 +1,6 @@
+using AudioSystem;
 using DataSystem;
-using Manager;
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 namespace Settings.Scene
 {
@@ -15,13 +14,13 @@ namespace Settings.Scene
         private void Awake()
         {
             Parent = transform.parent;
-            
+
             Init();
         }
 
         protected virtual void Init()
         {
-            var obj = FindObjectOfType(typeof(EventSystem));
+            var obj = FindObjectOfType(typeof(UnityEngine.EventSystems.EventSystem));
             if (obj == null)
             {
                 Instantiate(ResourceManager.GetPrefab("EventSystem"), Parent);
@@ -29,6 +28,12 @@ namespace Settings.Scene
             else
             {
                 obj.name = "@EventSystem";
+            }
+
+            obj = FindObjectOfType(typeof(AudioManager));
+            if (obj == null)
+            {
+                Instantiate(ResourceManager.GetPrefab("AudioManager"));
             }
         }
 

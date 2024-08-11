@@ -1,17 +1,16 @@
 using System.Collections;
-using Alpha;
-using CharacterSystem.Character;
-using Core;
+using CharacterSystem.Stat;
 using Core.Interface;
 using DataSystem;
-using Event;
-using Manager;
 using UnityEngine;
 
 namespace CharacterSystem.Effect
 {
     public class DotEffect : Effect
     {
+        private EffectController _controller;
+        private Coroutine _durationCoroutine;
+        private Coroutine _affectCoroutine;
         private readonly WaitForSeconds _coolTimeSecond;
         
         public DotEffect(int id, EffectType type, int duration, int coolTime) : base(id, type, coolTime)
@@ -37,49 +36,54 @@ namespace CharacterSystem.Effect
             var newEffect = IsPermanent
                 ? new DotEffect(ID, Type, coolTime)
                 : new DotEffect(ID, Type, duration, coolTime);
-            foreach (var pair in EffectValues)
-            {
-                newEffect.EffectValues[pair.Key] = pair.Value;
-            }
+            newEffect.AttributeType = AttributeType;
+            newEffect.AttributeValue = new EffectValue(AttributeValue);
             return newEffect;
         }
 
         public override void EnableEffect(IAffectable target, EffectController controller)
         {
+            if (target == null || AttributeType == AttributeType.None)
+            {
+                Debug.Log($"[DotEffect] EnableEffect(): Cannot enable effect {ID}, {Type}");
+                return;
+            }
+
+            _controller = controller;
             base.EnableEffect(target, controller);
             
             if (!IsPermanent)
             {
-                controller.StartCoroutine(StartDurationTimer());
+                _durationCoroutine = controller.StartCoroutine(StartDurationTimer());
             }
-            
-            controller.StartCoroutine(AffectDotEffect());
+            _affectCoroutine = controller.StartCoroutine(AffectDotEffect());
         }
 
         public override void DisableEffect()
         {
+            if (Target == null || !IsEnabled)
+            {
+                return;
+            }
+            
             base.DisableEffect();
             
-            if (Target.CharacterType == CharacterType.Player)
+            if (!IsPermanent)
             {
-                EventManager.OnNext(Message.OnPlayerEffectChanged);
+                _controller.StopCoroutine(_durationCoroutine);
             }
+            _controller.StopCoroutine(_affectCoroutine);
+            _controller = null;
         }
-
-        private void AffectDot()
-        {
-            foreach (var pair in EffectValues)
-            {
-                Target.Affect(pair.Key, pair.Value.EffectedValue);
-            }
-        }
-
+        
         private IEnumerator AffectDotEffect()
         {
             while (IsEnabled)
             {
                 yield return _coolTimeSecond;
-                AffectDot();
+                
+                AttributeValue.CalculateEffectValue(Target.GetReferenceValue(AttributeType));
+                Target.Affect(AttributeType, AttributeValue.EffectedValue);
             }
         }
     }

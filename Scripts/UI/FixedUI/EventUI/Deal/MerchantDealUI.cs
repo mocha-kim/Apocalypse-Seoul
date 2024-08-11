@@ -1,6 +1,6 @@
-using Event;
+using DataSystem;
+using EventSystem;
 using ItemSystem.Inventory;
-using Manager;
 using UnityEngine;
 
 namespace UI.FixedUI.EventUI.Deal

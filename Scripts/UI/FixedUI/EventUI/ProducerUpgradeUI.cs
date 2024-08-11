@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DataSystem;
 using DataSystem.Database;
-using Event;
+using EventSystem;
 using ItemSystem.Inventory;
 using ItemSystem.Produce;
-using Manager;
 using TMPro;
 using UI.FloatingUI.Produce;
 using UnityEngine;

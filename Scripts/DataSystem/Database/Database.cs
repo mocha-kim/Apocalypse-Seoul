@@ -1,5 +1,3 @@
-using Manager;
-
 namespace DataSystem.Database
 {
     public static partial class Database
@@ -12,8 +10,10 @@ namespace DataSystem.Database
             
             LoadProducerData();
             LoadItemRecipeData();
+            InitProducerData();
             
             LoadEffectData();
+            LoadEnemyData();
             
             LoadNPC();
             LoadNPCInventories();

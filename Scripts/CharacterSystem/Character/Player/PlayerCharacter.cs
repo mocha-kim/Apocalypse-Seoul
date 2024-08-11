@@ -2,37 +2,41 @@ using System.Collections;
 using System.Collections.Generic;
 using CharacterSystem.Character.Combat;
 using CharacterSystem.Character.Combat.AttackBehavior;
+using CharacterSystem.Character.Player.State;
+using CharacterSystem.Character.StateMachine;
 using CharacterSystem.Stat;
 using Core.Interface;
 using DataSystem;
 using DataSystem.Database;
 using DG.Tweening;
 using EnvironmentSystem.Camera;
-using Event;
-using Manager;
-using UI;
+using EventSystem;
 using UnityEngine;
-using Vector2 = UnityEngine.Vector2;
 
 namespace CharacterSystem.Character.Player
 {
     public sealed partial class PlayerCharacter : Character
     {
-        private PlayerStat Stat => DataManager.Stat;
+        private static PlayerStat Stat => DataManager.Stat;
+        private StateMachine<PlayerCharacter> _stateMachine;
+
         public override CharacterType CharacterType => CharacterType.Player;
 
         public Vector3 PlayerPosition => transform.position;
         public Vector2 NormalizedMouseVector { get; private set; } = Vector2.down;
 
         [SerializeField] private AttackCollider _attackCollider;
-        private bool _isBusy = false;
-            
+
+        public bool IsBusy { get; private set; }
+
         [SerializeField] private Animator _animator;
         private int _hashLastMoveX;
         private int _hashLastMoveY;
-        private int _hashAttackIndex;
+
         private int _hashIsConsuming;
         private int _hashConsumeItemId;
+
+        public bool CanAttack = true;
 
         #region MonoBehaviour
 
@@ -40,57 +44,49 @@ namespace CharacterSystem.Character.Player
         {
             _hashLastMoveX = Animator.StringToHash("LastMoveX");
             _hashLastMoveY = Animator.StringToHash("LastMoveY");
-            _hashAttackIndex = Animator.StringToHash("AttackIndex");
+
             _hashIsConsuming = Animator.StringToHash("IsConsuming");
             _hashConsumeItemId = Animator.StringToHash("ConsumeItemId");
 
-            EventManager.Subscribe(gameObject, Message.OnCharacterBusy, _ => _isBusy = true);
-            EventManager.Subscribe(gameObject, Message.OnCharacterFree, _ => _isBusy = false);
+            EventManager.Subscribe(gameObject, Message.OnCharacterBusy, _ => OnCharacterBusy());
+            EventManager.Subscribe(gameObject, Message.OnCharacterFree, _ => OnCharacterFree());
 
-            EventManager.Subscribe(gameObject, Message.OnLeftMouseDown, _ => OnLeftMouseDown());
             EventManager.Subscribe(gameObject, Message.OnPressChangeWeapon, _ => ChangeWeapon());
-
-            EventManager.Subscribe(gameObject, Message.OnRightMouseDown, _ => StartAiming());
-            EventManager.Subscribe(gameObject, Message.OnRightMouseUp, _ => EndAiming());
+            EventManager.Subscribe(gameObject, Message.OnEnemyDamaged, _ => OnAttackSucceeded());
 
             EventManager.Subscribe(gameObject, Message.OnTryItemUse, OnTryItemUse);
         }
 
         private void Start()
         {
-            InitAttackBehavior();
-            InitPainter();
+            InitWeaponStates();
+            InitStateMachine();
         }
 
         private void Update()
         {
-            if (!_isAiming)
-            {
-                return;
-            }
-
-            SetAnimationDirByMouseVector();
+            _stateMachine.Update(Time.deltaTime);
         }
 
         #endregion
 
-        private void ChangeWeapon()
+        private void InitStateMachine()
         {
-            if (_isBusy)
-            {
-                return;
-            }
-
-            _attackIndex = (_attackIndex + 1) % 3;
-            _animator.SetInteger(_hashAttackIndex, _attackIndex);
-
-            CurrentAttackBehavior = _attackBehaviors[_attackIndex];
-            Debug.Log(CurrentAttackBehavior);
+            _stateMachine =
+                new StateMachine<PlayerCharacter>(this, _weaponStates[WeaponStateType.Default].State, _animator);
+            _stateMachine.AddState(_weaponStates[WeaponStateType.ShortDistance].State);
+            _stateMachine.AddState(_weaponStates[WeaponStateType.LongDistance].State);
+            _stateMachine.AddState(new DeadState());
         }
 
-        private void OnLeftMouseDown()
+        private void OnCharacterBusy()
         {
-            Attack();
+            IsBusy = true;
+        }
+
+        private void OnCharacterFree()
+        {
+            IsBusy = false;
         }
 
         private void OnTryItemUse(EventManager.Event e)
@@ -122,15 +118,28 @@ namespace CharacterSystem.Character.Player
         }
     }
 
+    public sealed partial class PlayerCharacter : IMovable
+    {
+        public float MoveSpeed => Stat.GetAttributeValue(AttributeType.Speed) * Constants.Character.MoveSpeedFactor;
+
+        public void Move()
+        {
+            Debug.LogWarning(
+                "[PlayerCharacter] Move(): Player character moves on its own mover. This method do nothing");
+        }
+    }
+
     public sealed partial class PlayerCharacter : IAttackable
     {
-        private int _attackIndex;
-        private List<AttackBehavior> _attackBehaviors = new();
-        private static string[] _targetMaskString = { Constants.Layer.EnemyString };
+        private WeaponStateType _currentWeaponType = WeaponStateType.Default;
+        private readonly Dictionary<WeaponStateType, WeaponState> _weaponStates = new();
+        public static readonly string[] TargetMaskString = { Constants.Layer.EnemyString };
 
-        [SerializeField] private GameObject _playerAttackPainter;
-
-        private bool _isAiming = false;
+        private class WeaponState
+        {
+            public AttackBehavior AttackBehavior;
+            public State<PlayerCharacter> State;
+        }
 
         #region IAttackble
 
@@ -138,95 +147,109 @@ namespace CharacterSystem.Character.Player
 
         public void Attack()
         {
+            if (Stat.GetAttributeValue(AttributeType.Durability) <= 10)
+            {
+                return;
+            }
+
             switch (CurrentAttackBehavior)
             {
                 case null:
                 case DefaultAttackBehavior:
-                case ColliderAttackBehavior when _isBusy:
-                case HitScanSingleAttackBehavior when _isBusy:
+                case ColliderAttackBehavior when IsBusy:
+                case HitScanSingleAttackBehavior when IsBusy:
                     return;
                 default:
-                    AttackWithDelay();
+                    StartCoroutine(AttackCoroutine());
                     break;
             }
         }
 
-        #endregion
-        
-        private void InitAttackBehavior()
+        private IEnumerator AttackCoroutine()
         {
-            _attackBehaviors.Add(new DefaultAttackBehavior());
-            _attackBehaviors.Add(
-                new ColliderAttackBehavior(transform
+            EventManager.OnNext(Message.OnCharacterBusy);
+            EventManager.OnNext(Message.OnCancelRunning);
+            CanAttack = false;
+
+            NormalizedMouseVector = (MainCamera.GetMouseWorldPosition() - PlayerPosition).normalized;
+            CurrentAttackBehavior.Attack(
+                Stat.GetAttributeValue(AttributeType.Attack) * Stat.GetAttributeValue(AttributeType.Durability)
+                , (MainCamera.GetMouseWorldPosition() - transform.position).normalized
+            );
+
+            _animator.SetFloat(_hashLastMoveX, NormalizedMouseVector.x);
+            _animator.SetFloat(_hashLastMoveY, NormalizedMouseVector.y);
+
+            var elapsedTime = 0f;
+            while (elapsedTime < CurrentAttackBehavior.attackDelay)
+            {
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+
+            EventManager.OnNext(Message.OnCharacterFree);
+
+            elapsedTime = 0f;
+            while (elapsedTime < CurrentAttackBehavior.coolTime)
+            {
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+
+            CanAttack = true;
+
+        }
+
+        #endregion
+
+        private void InitWeaponStates()
+        {
+            _weaponStates[WeaponStateType.Default] = new WeaponState
+            {
+                State = new NoWeaponState(),
+                AttackBehavior = new DefaultAttackBehavior()
+            };
+
+            _weaponStates[WeaponStateType.ShortDistance] = new WeaponState
+            {
+                State = new SDWeaponState(),
+                AttackBehavior = new ColliderAttackBehavior(transform
                     , _attackCollider
                     , Constants.Character.PlayerColliderAttackAngle
                     , Constants.Character.PlayerColliderAttackDelay
                     , Constants.Character.PlayerColliderAttackCoolTime
-                    , _targetMaskString)
-            );
-            _attackBehaviors.Add(
-                new HitScanSingleAttackBehavior(transform
+                    , TargetMaskString
+                )
+            };
+
+            _weaponStates[WeaponStateType.LongDistance] = new WeaponState
+            {
+                State = new LDWeaponState(),
+                AttackBehavior = new HitScanSingleAttackBehavior(transform
                     , Constants.Character.PlayerHitScanAttackRange
                     , Constants.Character.PlayerHitScanAttackDelay
                     , Constants.Character.PlayerHitScanAttackCoolTime
-                    , _targetMaskString)
-            );
-
-            CurrentAttackBehavior = _attackBehaviors[0];
+                    , TargetMaskString
+                )
+            };
         }
 
-        private void InitPainter()
+        private void ChangeWeapon()
         {
-            _playerAttackPainter.GetComponent<PlayerAttackPainter>().Init(_targetMaskString);
-            _playerAttackPainter.SetActive(false);
-        }
-
-        private void StartAiming()
-        {
-            if (_isBusy || CurrentAttackBehavior is not HitScanSingleAttackBehavior)
+            if (IsBusy)
             {
                 return;
             }
-            _isAiming = true;
-            EventManager.OnNext(Message.OnCharacterBusy);
-            _playerAttackPainter.SetActive(true);
+
+            _currentWeaponType = (WeaponStateType)(((int)_currentWeaponType + 1) % 3);
+            CurrentAttackBehavior = _weaponStates[_currentWeaponType].AttackBehavior;
+            _stateMachine.ChangeState(_weaponStates[_currentWeaponType].State.GetType());
+            Debug.Log($"[PlayerCharacter] ChangeWeapon(): current weapon is {_currentWeaponType}");
         }
 
-        private void EndAiming()
+        private void OnAttackSucceeded()
         {
-            if (CurrentAttackBehavior is not HitScanSingleAttackBehavior)
-            {
-                return;
-            }
-            _isAiming = false;
-            EventManager.OnNext(Message.OnCharacterFree);
-            _playerAttackPainter.SetActive(false);
-        }
-        
-        private void SetAnimationDirByMouseVector()
-        {
-            if (MouseData.MouseHoveredInventory != null)
-            {
-                return;
-            }
-            
-            NormalizedMouseVector = (MainCamera.GetMouseWorldPosition() - PlayerPosition).normalized;
-            
-            _animator.SetFloat(_hashLastMoveX, NormalizedMouseVector.x);
-            _animator.SetFloat(_hashLastMoveY, NormalizedMouseVector.y);
-        }
-
-        private void AttackWithDelay()
-        {
-            NormalizedMouseVector = (MainCamera.GetMouseWorldPosition() - PlayerPosition).normalized;
-
-            _animator.SetFloat(_hashLastMoveX, NormalizedMouseVector.x);
-            _animator.SetFloat(_hashLastMoveY, NormalizedMouseVector.y);
-
-            CurrentAttackBehavior.Attack(
-                Stat.GetAttributeValue(AttributeType.Attack)
-                , (MainCamera.GetMouseWorldPosition() - transform.position).normalized
-            );
+            Stat.AddAttributeValue(AttributeType.Durability, -1);
         }
     }
 
@@ -234,8 +257,6 @@ namespace CharacterSystem.Character.Player
     {
         private bool _canDamage = true;
         private readonly WaitForSeconds _spriteWait = new(0.5f);
-
-        #region IDamagable
 
         public bool IsAlive => Stat.Attributes[AttributeType.Hp].ModifiedValue > 0;
 
@@ -245,29 +266,41 @@ namespace CharacterSystem.Character.Player
             {
                 return;
             }
-            Stat.AddAttributeValue(AttributeType.Hp, -damage);
+
+            Stat.AddAttributeValue(
+                AttributeType.Hp
+                , -Mathf.Max(0, damage - Stat.GetAttributeValue(AttributeType.Defense))
+            );
+            EventManager.OnNext(Message.OnCancelRunning);
+
+            if (!IsAlive)
+            {
+                _render.DOComplete();
+                _stateMachine.ChangeState<DeadState>();
+                return;
+            }
+
             _render.DOColor(Color.red, Constants.Character.DamageEffectDuration)
                 .SetLoops(9, LoopType.Yoyo)
                 .OnComplete(() => _render.DOColor(Color.white, Constants.Character.DamageEffectDuration));
         }
-        
-        #endregion
     }
 
     public sealed partial class PlayerCharacter : IAffectable
     {
-        #region IAffectable
-
         public void Affect(AttributeType type, int value)
         {
             Stat.AddAttributeValue(type, value);
+        }
+
+        public void Affect(Effect.Effect effect)
+        {
+            EventManager.OnNext(Message.OnPlayerAffected, effect);
         }
 
         public int GetReferenceValue(AttributeType type)
         {
             return Stat.Attributes[type].BaseValue;
         }
-
-        #endregion
     }
 }

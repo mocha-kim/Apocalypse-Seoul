@@ -7,5 +7,14 @@ namespace AudioSystem
         ItemLiquid,
         ItemBandage,
         ItemSyringe,
+
+        BasecampTheme,
+
+        PlayerFootstep,
+    }
+
+    public enum SFXParameter
+    {
+        PlayerSpeed,
     }
 }

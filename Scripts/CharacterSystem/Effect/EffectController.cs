@@ -4,8 +4,7 @@ using Alpha;
 using Core.Interface;
 using DataSystem;
 using DataSystem.Database;
-using Event;
-using Manager;
+using EventSystem;
 using UnityEngine;
 
 namespace CharacterSystem.Effect
@@ -63,6 +62,7 @@ namespace CharacterSystem.Effect
                 Debug.LogWarning("[EffectController] EnableEffect(): Enable effect by type(ItemEffect) is impossible");
                 return;
             }
+            
             EnableEffect(Database.GetEffect(type));
         }
 
@@ -73,18 +73,28 @@ namespace CharacterSystem.Effect
                 return;
             }
             
-            _effects[type].DisableEffect();
+            effect.DisableEffect();
         }
 
         private void OnUseItem(EventManager.Event e)
         {
+            List<int> effectIDs = null;
             try
             {
-                EnableEffect(Database.GetEffect((int)e.Args[0]));
+                effectIDs = (List<int>)e.Args[0];
             }
             catch
             {
                 Debug.Log("Invalid Event Argument");
+            }
+
+            if (effectIDs == null)
+            {
+                return;
+            }
+            foreach (var id in effectIDs)
+            {
+                EnableEffect(Database.GetEffect(id));
             }
         }
     }

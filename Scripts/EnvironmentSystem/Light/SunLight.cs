@@ -1,8 +1,8 @@
 using Alpha;
 using Core;
 using DataSystem;
-using Event;
-using Manager;
+using EnvironmentSystem.Time;
+using EventSystem;
 using UnityEngine;
 
 namespace EnvironmentSystem.Light

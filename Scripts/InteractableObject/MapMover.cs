@@ -1,5 +1,4 @@
-using Event;
-using Manager;
+using EventSystem;
 using UI.InGameUI;
 using UnityEngine;
 

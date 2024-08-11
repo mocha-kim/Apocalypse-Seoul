@@ -1,8 +1,10 @@
+using System;
 using Alpha;
 using Core;
 
 namespace CharacterSystem.Stat
 {
+    [Serializable]
     public class EnemyStat : Stat
     {
         private static AttributeType[] _attributeTypes =
@@ -28,6 +30,18 @@ namespace CharacterSystem.Stat
             Attributes[AttributeType.Defense].InitValue(defense);
             Attributes[AttributeType.AttackSpeed].InitValue(attackSpeed);
             Attributes[AttributeType.AttackRange].InitValue(attackRange);
+        }
+
+        public override Stat Clone()
+        {
+            return new EnemyStat(
+                Attributes[AttributeType.Hp].BaseValue,
+                Attributes[AttributeType.Speed].BaseValue,
+                Attributes[AttributeType.Attack].BaseValue,
+                Attributes[AttributeType.Defense].BaseValue,
+                Attributes[AttributeType.AttackSpeed].BaseValue,
+                Attributes[AttributeType.AttackRange].BaseValue
+            );
         }
     }
 }

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using DialogSystem;
-using Event;
-using Manager;
+using EventSystem;
 using UI.FixedUI.EventUI.Deal;
 using UnityEngine;
 

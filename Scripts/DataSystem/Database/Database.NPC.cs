@@ -6,7 +6,6 @@ using CharacterSystem.Character;
 using DataSystem.FileIO;
 using DialogSystem;
 using ItemSystem.Inventory;
-using Manager;
 using UnityEngine;
 
 namespace DataSystem.Database

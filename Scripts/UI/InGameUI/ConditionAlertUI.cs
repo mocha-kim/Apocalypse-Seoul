@@ -1,6 +1,6 @@
 using System;
 using System.Collections;
-using Manager;
+using DataSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;

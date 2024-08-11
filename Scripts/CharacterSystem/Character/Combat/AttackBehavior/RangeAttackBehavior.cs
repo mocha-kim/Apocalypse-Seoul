@@ -10,8 +10,8 @@ namespace CharacterSystem.Character.Combat.AttackBehavior
         public float range;
         public float angle;
 
-        protected Transform ClosestTarget;
-        protected List<Transform> Targets = new();
+        protected HitBox ClosestTarget;
+        protected List<HitBox> Targets = new();
 
         public override float Range => range;
 
@@ -33,13 +33,17 @@ namespace CharacterSystem.Character.Combat.AttackBehavior
             var targetsInRadius = Physics2D.OverlapCircleAll(StartPoint, range, TargetMask);
             foreach (var targetCollider in targetsInRadius)
             {
-                var target = targetCollider.transform;
+                if (!targetCollider.transform.TryGetComponent(out HitBox target))
+                {
+                    continue;
+                }
+                
                 // Check Target is in ViewAngle
-                var direction = (target.position - StartPoint).normalized;
+                var direction = (target.transform.position - StartPoint).normalized;
                 if (!(Vector3.Angle(attackDirection, direction) < angle / 2)) continue;
 
                 // Check Target is in View(not obscured by obstacles)
-                var distance = Vector3.Distance(StartPoint, target.position);
+                var distance = Vector3.Distance(StartPoint, target.transform.position);
                 if (Physics2D.Raycast(StartPoint, direction, distance, ObstacleMask)) continue;
 
                 Targets.Add(target);

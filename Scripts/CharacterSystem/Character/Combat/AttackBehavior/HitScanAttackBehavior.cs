@@ -9,9 +9,9 @@ namespace CharacterSystem.Character.Combat.AttackBehavior
     public abstract class HitScanAttackBehavior : AttackBehavior
     {
         public float range;
-        
-        protected Transform ClosestTarget;
-        protected List<Transform> Targets = new();
+
+        protected HitBox ClosestTarget;
+        protected List<HitBox> Targets = new();
 
         public override float Range => range;
 
@@ -30,24 +30,35 @@ namespace CharacterSystem.Character.Combat.AttackBehavior
             var attackDirection = (MainCamera.GetMouseWorldPosition() - StartPoint).normalized;
 
             // Find Targets in Radius
+
+            //var targetsInRadius = Physics2D.RaycastAll(StartPoint, attackDirection, range, TargetMask);
             var targetsInRadius = Physics2D.RaycastAll(StartPoint, attackDirection, range, TargetMask);
             foreach (var targetCollider in targetsInRadius)
             {
-                var target = targetCollider.transform;
+                if (!targetCollider.transform.TryGetComponent(out HitBox target))
+                {
+                    target = targetCollider.transform.GetComponentInChildren<HitBox>();
+                    if (target == null)
+                    {
+                        continue;
+                    }
+                }
 
                 // Check Target is in View(not obscured by obstacles)
-                var distance = Vector3.Distance(StartPoint, target.position);
+                var distance = Vector3.Distance(StartPoint, target.transform.position);
                 if (Physics2D.Raycast(StartPoint, attackDirection, distance, ObstacleMask))
                 {
                     continue;
                 }
+
                 Targets.Add(target);
-                
+
                 // Find nearest Target
                 if (ClosestTarget != null && nearestDistance <= distance)
                 {
                     continue;
                 }
+
                 ClosestTarget = target;
                 nearestDistance = distance;
             }

@@ -1,5 +1,5 @@
+using DataSystem;
 using DataSystem.Database;
-using Manager;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;

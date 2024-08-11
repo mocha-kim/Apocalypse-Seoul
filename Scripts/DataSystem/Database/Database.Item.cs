@@ -122,10 +122,18 @@ namespace DataSystem.Database
                         , col[3]
                         , int.Parse(col[4])
                         , int.Parse(col[5])
-                        , int.Parse(col[6])
-                        , int.Parse(col[12])
-                        , Enum.Parse<SFXType>(col[13])
+                        , (SFXType)Enum.Parse(typeof(SFXType), col[6])
+                        , int.Parse(col[7])
                     );
+
+                    for (int i = 8; i < col.Count; i++)
+                    {
+                        if (col[i] == null || col[i].Length == 0)
+                        {
+                            continue;
+                        }
+                        item.effectIds.Add(int.Parse(col[i]));
+                    }
                     ConsumeItems.Add(index, item);
                 }
             }

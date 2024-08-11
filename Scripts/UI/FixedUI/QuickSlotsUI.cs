@@ -1,9 +1,9 @@
+using System;
 using Alpha;
 using Core;
 using DataSystem;
-using Event;
+using EventSystem;
 using ItemSystem.Inventory;
-using Manager;
 using UnityEngine;
 
 namespace UI.FixedUI
@@ -38,15 +38,24 @@ namespace UI.FixedUI
 
         private void OnUpdateInventory(EventManager.Event e)
         {
-            if ((InventoryType)e.Args[0] != InventoryType.QuickSlot)
+            InventoryType type;
+            try
             {
-                return;
+                type = (InventoryType)e.Args[0];
             }
-            
-            foreach (var slotUI in _slotUIs)
+            catch (Exception exception)
             {
-                slotUI.SyncSlotItemAmount();
-                slotUI.UpdateSlot();
+                Console.WriteLine(exception);
+                throw;
+            }
+
+            if (type is InventoryType.QuickSlot or InventoryType.Player)
+            {
+                foreach (var slotUI in _slotUIs)
+                {
+                    slotUI.SyncSlotItemAmount();
+                    slotUI.UpdateSlot();
+                }
             }
         }
 

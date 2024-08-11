@@ -5,22 +5,15 @@ namespace CharacterSystem.Character.Enemy.State
 {
     public class DeadState : State<EnemyCharacter>
     {
-        private Animator _animator;
-
         private int _hashIsAlive = Animator.StringToHash("IsAlive");
-
-        public override void OnInitialized()
-        {
-            _animator = Context.Animator;
-        }
 
         public override void OnEnter()
         {
-            if (_animator == null)
+            if (Animator == null)
             {
                 return;
             }
-            _animator.SetBool(_hashIsAlive, false);
+            Animator.SetBool(_hashIsAlive, false);
         }
 
         public override void Update(float deltaTime)

@@ -1,18 +1,20 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using DataSystem;
 using DataSystem.Database;
-using Event;
+using EventSystem;
 using ItemSystem.Inventory;
 using ItemSystem.Produce;
-using Manager;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace UI.FloatingUI.Produce
 {
-    public abstract class ProducerUI : MouseTriggerUI
+    public class ProducerUI : MouseTriggerUI
     {
+        [SerializeField] private TextMeshProUGUI _titleText;
+        
         private Vector2 _productNodeSize;
         private Vector2 _contentAreaSize;
         private int _productNodeCount = 0;
@@ -32,8 +34,8 @@ namespace UI.FloatingUI.Produce
         [SerializeField] private GameObject _materialParent;
         private List<MaterialNodeUI> _materialNodes;
 
-        protected abstract ProducerType GetProducerType();
-        public abstract override UIType GetUIType();
+        protected ProducerType producerType;
+        public override UIType GetUIType() => UIType.ProducerUI;
         protected override bool HasEnterExitTrigger => false;
 
         public override void Init()
@@ -47,62 +49,61 @@ namespace UI.FloatingUI.Produce
             _targetProduct = _selectedArea.GetComponentInChildren<ProductNodeUI>();
             _materialNodes = _materialParent.GetComponentsInChildren<MaterialNodeUI>().ToList();
             
-            InitData();
-            
             _produceButton.onClick.AddListener(OnClickProduce);
-            EventManager.Subscribe(gameObject, Message.OnProducerUpgraded, OnProducerUpgraded);
             EventManager.Subscribe(gameObject, Message.OnClickProductNode, OnClickProductNode);
             EventManager.Subscribe(gameObject, Message.OnUpdateInventory, OnUpdateInventory);
         }
 
         public override void Open()
         {
-            base.Open();
+            if (UIManager.OpenProducerType == null || UIManager.OpenProducerId == -1)
+            {
+                return;
+            }
+            
             _selectedArea.SetActive(false);
+            UpdateProductNodeUIs();
+            
+            // Todo: load from producer csv, language csv
+            producerType = UIManager.OpenProducerType ?? ProducerType.CraftingTable;
+            _titleText.text = $"{producerType} {DataManager.Stat.ProducerLevel[producerType]} 레벨";
+            
+            base.Open();
         }
 
-        private void InitData()
+        protected virtual List<ItemRecipe> GetItemRecipeList() => Database.GetItemRecipeList(producerType);
+        
+        protected void UpdateProductNodeUIs()
         {
-            _recipeDataList = Database.GetItemRecipeList(GetProducerType());
+            var updatedNodeCount = 0;
+            _recipeDataList = GetItemRecipeList();
             foreach (var recipe in _recipeDataList)
             {
-                if (recipe.producerLevel > DataManager.Stat.ProducerLevel[GetProducerType()])
+                if (!recipe.isActive || recipe.producerLevel > DataManager.Stat.ProducerLevel[producerType])
                 {
                     continue;
                 }
+
+                GameObject node;
+                if (updatedNodeCount < _productNodeCount)
+                {
+                    node = _productListParent.transform.GetChild(updatedNodeCount).gameObject;
+                }
+                else
+                {
+                    node = Instantiate(_productNodePrefab, _productListParent.transform);
+                    node.GetComponent<RectTransform>().anchoredPosition = GetNextNodePosition();
+                    _productNodeCount++;
+                }
                 
-                var newNode = Instantiate(_productNodePrefab, _productListParent.transform);
-                newNode.SetActive(true);
-                newNode.GetComponent<RectTransform>().anchoredPosition = GetNextNodePosition();
-                
-                var nodeUI = newNode.GetComponent<ProductNodeUI>();
+                var nodeUI = node.GetComponent<ProductNodeUI>();
                 nodeUI.SetData(recipe);
                 nodeUI.SetContext(this);
                 
-                _productNodeCount++;
+                node.SetActive(true);
+                updatedNodeCount++;
             }
 
-            _productListParent.GetComponent<RectTransform>().sizeDelta =
-                new Vector2(_contentAreaSize.x, _productNodeCount / _colCount * (_productNodeSize.y + _space.y));
-        }
-
-        private void UpdateLevelData()
-        {
-            var level = DataManager.Stat.ProducerLevel[GetProducerType()];
-            foreach (var recipe in _recipeDataList)
-            {
-                if (recipe.producerLevel != level)
-                {
-                    continue;
-                }
-                
-                var newNode = Instantiate(_productNodePrefab, _productListParent.transform);
-                newNode.SetActive(true);
-                newNode.GetComponent<ProductNodeUI>().SetData(recipe);
-                newNode.GetComponent<RectTransform>().anchoredPosition = GetNextNodePosition();
-                _productNodeCount++;
-            }
-            
             _productListParent.GetComponent<RectTransform>().sizeDelta =
                 new Vector2(_contentAreaSize.x, _productNodeCount / _colCount * (_productNodeSize.y + _space.y));
         }
@@ -116,7 +117,7 @@ namespace UI.FloatingUI.Produce
         
         private void SetRecipe(int recipeId)
         {
-            _targetItemRecipe = Database.GetItemRecipe(ProducerType.CraftingTable, recipeId);
+            _targetItemRecipe = Database.GetItemRecipe(recipeId);
             _targetProduct.SetData(_targetItemRecipe);
             UpdateProductUI();
         }
@@ -165,23 +166,6 @@ namespace UI.FloatingUI.Produce
                 _materialNodes[i].gameObject.SetActive(true);
                 _materialNodes[i].UpdateUI();
             }
-        }
-
-        private void OnProducerUpgraded(EventManager.Event e)
-        {
-            try
-            {
-                if (GetProducerType() != (ProducerType)e.Args[0])
-                {
-                    return;
-                }
-            }
-            catch
-            {
-                Debug.LogError("[ProducerUI] OnProducerUpgraded(): Invalid event argument");
-                return;
-            }
-            UpdateLevelData();
         }
 
         private void OnUpdateInventory(EventManager.Event e)

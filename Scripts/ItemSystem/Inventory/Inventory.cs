@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DataSystem.Database;
-using Event;
+using EventSystem;
 using ItemSystem.Item;
-using Manager;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -236,6 +235,17 @@ namespace ItemSystem.Inventory
 
             EventManager.OnNext(Message.OnUpdateInventory, Type);
             return true;
+        }
+
+        public void Clear()
+        {
+            foreach (var slot in slots)
+            {
+                slot.ClearItem();
+            }
+            
+            Debug.Log("Clear Inventory");
+            EventManager.OnNext(Message.OnUpdateInventory, Type);
         }
 
         public InventoryType GetInventoryType()

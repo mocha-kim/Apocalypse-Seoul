@@ -1,8 +1,9 @@
 using System.Collections.Generic;
+using CharacterSystem.Character;
+using DataSystem;
 using DataSystem.Database;
 using DialogSystem;
-using Event;
-using Manager;
+using EventSystem;
 using UI;
 using UI.FixedUI.EventUI;
 using UI.InGameUI;
@@ -16,9 +17,12 @@ namespace InteractableObject
         private NPC _data;
         
         [SerializeField] private SpriteRenderer _renderer;
+        [SerializeField] private ObjectDir _direction;
 
         private bool _isUIOpened = false;
         private EventControlUI _eventControlUI;
+        private Animator _animator;
+        private int _hashDirection;
 
         private void Start()
         {
@@ -32,6 +36,13 @@ namespace InteractableObject
             
             _renderer.sprite = ResourceManager.GetSprite(_data.spritePath);
             _data.Init();
+
+            _animator = _renderer.GetComponent<Animator>();
+            if (_animator != null)
+            {
+                _hashDirection = Animator.StringToHash("Direction");
+                _animator.SetInteger(_hashDirection, (int)_direction);
+            }
             
             EventManager.Subscribe(gameObject, Message.OnUIClosed, OnUIClosed);
         }

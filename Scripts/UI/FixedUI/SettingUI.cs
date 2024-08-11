@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Event;
-using Manager;
+using EventSystem;
+using InputSystem.UserActionBind;
+using Settings;
 using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
-using UserActionBind;
 
 namespace UI.FixedUI
 {
@@ -18,6 +18,7 @@ namespace UI.FixedUI
         [SerializeField] Button _closeButton;
         [SerializeField] Button _resetButton;
         [SerializeField] Button _btnQuit;
+        [SerializeField] Button _openSaveLoadUI;
         
         public override UIType GetUIType() => UIType.SettingUI;
         private List<GameObject> _bindingPairGoList = new();
@@ -47,6 +48,11 @@ namespace UI.FixedUI
             {
                 InputBinding.SetDefaultBind();
                 RefreshAllBindingUIs();
+            }).AddTo(gameObject);
+            
+            _openSaveLoadUI.OnClickAsObservable().Subscribe(_ =>
+            {
+                UIManager.Instance.Open(UIType.SaveLoadUI);
             }).AddTo(gameObject);
             
             EventManager.Subscribe(gameObject, Message.OnRefreshAllBindingUIs, _ => RefreshAllBindingUIs());

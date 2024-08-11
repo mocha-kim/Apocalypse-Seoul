@@ -1,7 +1,6 @@
 using DataSystem.Database;
-using Event;
+using EventSystem;
 using ItemSystem.Inventory;
-using Manager;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;

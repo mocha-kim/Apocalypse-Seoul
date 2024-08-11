@@ -1,7 +1,7 @@
 using System.Collections;
+using DataSystem;
 using DataSystem.Database;
-using Event;
-using Manager;
+using EventSystem;
 using UnityEngine;
 using UnityEngine.UI;
 

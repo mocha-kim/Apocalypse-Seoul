@@ -1,19 +1,11 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Runtime.Serialization.Formatters.Binary;
-using CharacterSystem.Stat;
 using DataSystem.FileIO;
-using Event;
-using ItemSystem.Inventory;
-using ItemSystem.Item;
-using ItemSystem.Produce;
-using Manager;
 using UnityEngine;
-using UserActionBind;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Exception = System.Exception;
 
 namespace DataSystem.SaveLoad
 {
@@ -48,7 +40,7 @@ namespace DataSystem.SaveLoad
 
             if (!File.Exists(fullPath))
             {
-                Debug.LogError("No such saveFile exists");
+                Debug.LogError("[SaveSystem] LoadData(): No such saveFile exists");
             }
 
             string json = DecodeFile(fullPath);
@@ -60,6 +52,45 @@ namespace DataSystem.SaveLoad
             });
 
             return loadData;
+        }
+
+        public static void ResetData()
+        {
+            try
+            {
+                foreach (string directory in Directory.GetDirectories(SavePath))
+                {
+                    try
+                    {
+                        Directory.Delete(directory, true);
+                    }
+                    catch (IOException)
+                    {
+                        Directory.Delete(directory, true);
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        Directory.Delete(directory, true);
+                    }
+                }
+
+                try
+                {
+                    Directory.Delete(SavePath, true);
+                }
+                catch (IOException)
+                {
+                    Directory.Delete(SavePath, true);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    Directory.Delete(SavePath, true);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("[SaveSystem] ResetData(): Data Reset Failed.\n" + e);
+            }
         }
 
         private static string DecodeFile(string path)

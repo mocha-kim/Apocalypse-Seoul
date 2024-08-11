@@ -1,9 +1,12 @@
+using DataSystem;
+using EnvironmentSystem;
 using EnvironmentSystem.Camera;
-using Manager;
+using EnvironmentSystem.Time;
+using InputSystem;
 using UI;
 using UI.FixedUI;
 using UnityEngine;
-using EventManager = Manager.EventManager;
+using EventManager = EventSystem.EventManager;
 
 namespace Settings.Scene
 {

@@ -20,6 +20,7 @@ namespace CharacterSystem.Character.Combat.AttackBehavior
         protected LayerMask TargetMask;
         
         public abstract float Range { get; }
+        protected Effect.Effect Effect = null;
 
         protected AttackBehavior(Transform context, float attackDelay = 1f, float coolTime = 2f,
             string[] targetMaskStrings = null)
@@ -35,6 +36,11 @@ namespace CharacterSystem.Character.Combat.AttackBehavior
         }
 
         public Vector3 StartPoint => context.position;
+
+        public virtual void SetEffect(Effect.Effect effect)
+        {
+            Effect = effect;
+        }
 
         public abstract void Attack(int damage, Vector3 attackDirection = default);
     }

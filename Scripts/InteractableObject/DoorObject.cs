@@ -1,7 +1,7 @@
 using System;
+using DataSystem;
 using DataSystem.Database;
 using ItemSystem.Item;
-using Manager;
 using UI.InGameUI;
 using UnityEngine;
 

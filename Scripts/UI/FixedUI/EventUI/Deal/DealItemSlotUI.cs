@@ -1,6 +1,7 @@
 using System.ComponentModel;
-using Event;
-using Manager;
+using EventSystem;
+using InputSystem;
+using ItemSystem.Inventory;
 using UI.FloatingUI.Inventory;
 
 namespace UI.FixedUI.EventUI.Deal
@@ -8,7 +9,7 @@ namespace UI.FixedUI.EventUI.Deal
     public class DealItemSlotUI : ItemSlotUI
     {
         [Description ("Not self inventory, for quick item move")]
-        private ItemSystem.Inventory.Inventory _pairInventory;
+        private Inventory _pairInventory;
         
         protected override void OnMouseClick()
         {
@@ -31,38 +32,20 @@ namespace UI.FixedUI.EventUI.Deal
             EventManager.OnNext(Message.OnUpdateInventory, _slotData.ParentType);
         }
         
-        protected override void OnEndDragItem()
+        protected override void OnSwapItem(ItemSlot slot)
         {
-            Destroy(MouseData.DraggingItem);
-
-            var slot = MouseData.DragBeginSlot;
-            if (slot == null || slot.Amount <= 0)
+            if (MouseData.MouseHoveredSlot.ParentType == slot.ParentType ||
+                MouseData.MouseHoveredSlot.ParentType == _pairInventory.GetInventoryType())
             {
-                return;
+                MouseData.MouseHoveredSlot.SwapItem(slot);
             }
-            MouseData.DragBeginSlot = null;
-            
-            if (MouseData.MouseHoveredSlot != null)
-            {
-                if (MouseData.MouseHoveredSlot.ParentType == slot.ParentType ||
-                    MouseData.MouseHoveredSlot.ParentType == _pairInventory.GetInventoryType())
-                {
-                    MouseData.MouseHoveredSlot.SwapItem(slot);
-                    EventManager.OnNext(Message.OnUpdateInventory, MouseData.MouseHoveredSlot.ParentType);
-                }
-            }
-            else if (MouseData.MouseHoveredInventory == null)
-            {
-                slot.ClearItem();
-            }
-            EventManager.OnNext(Message.OnUpdateInventory, slot.ParentType);
         }
 
         public float GetValue() =>  _slotData.GetValue();
         
-        public void SetPairInventory(ItemSystem.Inventory.Inventory pairInventory) => _pairInventory = pairInventory;
+        public void SetPairInventory(Inventory pairInventory) => _pairInventory = pairInventory;
 
-        public void MoveItemTo(ItemSystem.Inventory.Inventory inventory)
+        public void MoveItemTo(Inventory inventory)
         {
             if (_slotData != null && _slotData.Item != null)
             {

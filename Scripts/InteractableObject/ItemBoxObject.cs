@@ -3,7 +3,6 @@ using CharacterSystem.Stat;
 using DataSystem;
 using DataSystem.Database;
 using ItemSystem.ItemBox;
-using Manager;
 using UI;
 using UI.InGameUI;
 using UnityEngine;

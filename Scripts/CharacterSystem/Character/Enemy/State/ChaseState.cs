@@ -1,6 +1,6 @@
+using System.Collections;
 using CharacterSystem.Character.Combat.AttackBehavior;
 using CharacterSystem.Character.StateMachine;
-using CharacterSystem.Stat;
 using Core.Interface;
 using DataSystem;
 using Unity.VisualScripting;
@@ -18,39 +18,36 @@ namespace CharacterSystem.Character.Enemy.State
         private bool _isAttackable;
         private float _waitTime = Constants.Delay.AfterChaseDelay;
 
-        private Animator _animator;
+        private Coroutine _updateCoroutine = null;
+        private static readonly WaitForSeconds Wait = new (1f);
+        
         private readonly int _hashIsMoving = Animator.StringToHash("IsMoving");
         private readonly int _hashMoveSpeed = Animator.StringToHash("MoveSpeed");
-
+        
         public override void OnInitialized()
         {
-            _animator = Context.Animator;
             _mover = Context.GetComponent<EnemyMover>() ?? Context.AddComponent<EnemyMover>();
             _attackable = Context.GetComponent<IAttackable>();
-            
         }
 
         public override void OnEnter()
         {            
             _isAttackable = StateMachine.HasState<AttackState>();
+            _updateCoroutine = Context.StartCoroutine(UpdateDestination());
             
             Context.SwitchToDetectionFov();
 
-            if (_animator == null)
+            if (Animator == null)
             {
                 return;
             }
-            _animator.SetBool(_hashIsMoving, true);
+            Animator.SetBool(_hashIsMoving, true);
         }
 
         public override void Update(float deltaTime)
         {
             if (Context.Target)
             {
-                var speed = Context.Stat.GetAttributeValue(AttributeType.Speed);
-                _mover.SetDestination(Context.Target.position, speed);
-                _animator.SetFloat(_hashMoveSpeed, speed * Constants.Animation.SpeedFactor);
-                
                 if (_isAttackable && AttackBehavior != null && Context.DistanceToTarget <= AttackBehavior.Range)
                 {
                     StateMachine.ChangeState<AttackState>();
@@ -66,15 +63,34 @@ namespace CharacterSystem.Character.Enemy.State
             StateMachine.ChangeState<IdleState>();
         }
 
-        public override void FixedUpdate()
+        public override void FixedUpdate(float deltaTime)
         {
-            _mover.Move();
+            _mover.Move(deltaTime);
         }
 
         public override void OnExit()
         {
-            _animator.SetFloat(_hashMoveSpeed, 0f);
-            _animator.SetBool(_hashIsMoving, false);
+            if (_updateCoroutine != null)
+            {
+                Context.StopCoroutine(_updateCoroutine);
+            }
+            _updateCoroutine = null;
+            _mover.ClearDestination();
+            
+            Animator.SetFloat(_hashMoveSpeed, 0f);
+            Animator.SetBool(_hashIsMoving, false);
+        }
+        
+        private IEnumerator UpdateDestination()
+        {
+            while (true)
+            {
+                if (Context.Target)
+                {
+                    _mover.SetDestination(Context.Target.position);
+                }
+                yield return Wait;
+            }
         }
     }
 }

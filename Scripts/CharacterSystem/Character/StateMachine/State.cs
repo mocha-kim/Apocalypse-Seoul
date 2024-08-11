@@ -1,18 +1,22 @@
+using UnityEngine;
+
 namespace CharacterSystem.Character.StateMachine
 {
     public abstract class State<T>
     {
         protected StateMachine<T> StateMachine;
         protected T Context;
+        protected Animator Animator = null;
 
         public State()
         {
         }
 
-        public void SetStateMachineAndContext(StateMachine<T> stateMachine, T context)
+        public void Init(StateMachine<T> stateMachine, T context, Animator animator = null)
         {
             StateMachine = stateMachine;
             Context = context;
+            Animator = animator;
 
             OnInitialized();
         }
@@ -27,7 +31,7 @@ namespace CharacterSystem.Character.StateMachine
 
         public abstract void Update(float deltaTime);
 
-        public virtual void FixedUpdate()
+        public virtual void FixedUpdate(float deltaTime)
         {
         }
 

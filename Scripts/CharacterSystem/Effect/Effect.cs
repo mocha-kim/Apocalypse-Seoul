@@ -1,14 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Alpha;
 using CharacterSystem.Character;
 using CharacterSystem.Stat;
-using Core;
 using Core.Interface;
 using DataSystem;
-using Event;
-using Manager;
+using EventSystem;
 using UnityEngine;
 
 namespace CharacterSystem.Effect
@@ -18,14 +15,15 @@ namespace CharacterSystem.Effect
     {
         public readonly int ID;
         public readonly EffectType Type;
-        public bool IsPermanent { get; protected set; }
-        public bool IsEnabled { get; protected set; }
+        public bool IsPermanent { get; protected set; } = false;
+        public bool IsEnabled { get; protected set; } = false;
 
         public int duration;
         public readonly int coolTime;
 
         protected IAffectable Target;
-        protected Dictionary<AttributeType, EffectValue> EffectValues = new();
+        protected AttributeType AttributeType = AttributeType.None;
+        protected EffectValue AttributeValue = null;
 
         protected Effect(int id, EffectType type, int coolTime)
         {
@@ -51,55 +49,70 @@ namespace CharacterSystem.Effect
             // sum effect
             public EffectValue(int value)
             {
+                CorrectionValue = null;
                 EffectedValue = value;
                 IsFloat = false;
             }
 
+            public EffectValue(EffectValue other)
+            {
+                IsFloat = other.IsFloat;
+                CorrectionValue = other.CorrectionValue;
+                EffectedValue = other.EffectedValue;
+            }
+
             public void CalculateEffectValue(int referenceValue)
             {
-                if (CorrectionValue == null)
+                if (!IsFloat || CorrectionValue == null)
                 {
                     return;
                 }
 
                 EffectedValue = Mathf.RoundToInt((float)(referenceValue * CorrectionValue));
             }
+
+            public override string ToString()
+            {
+                return $"EffectValue: isFloat({IsFloat}), correctionValue({CorrectionValue}), effectedValue({EffectedValue})";
+            }
         }
 
-        public void AddEffect(AttributeType type, int value)
+        public void SetEffect(AttributeType type, int value)
         {
-            if (EffectValues.ContainsKey(type))
+            if (AttributeType != AttributeType.None)
             {
-                Debug.LogWarning($"{Type}: Already exist attribute({type}). It will be overwritten.");
+                Debug.LogWarning($"[Effect] SetEffect(): This effect(id: {ID}) already set. It will be overwritten.");
             }
 
-            EffectValues[type] = new EffectValue(value);
+            AttributeType = type;
+            AttributeValue = new EffectValue(value);
         }
 
-        public void AddEffect(AttributeType type, float value)
+        public void SetEffect(AttributeType type, float value)
         {
-            if (EffectValues.ContainsKey(type))
+            if (AttributeType != AttributeType.None)
             {
-                Debug.LogWarning($"{Type}: Already exist attribute({type}). It will be overwritten.");
+                Debug.LogWarning($"[Effect] SetEffect(): This effect(id: {ID}) already set. It will be overwritten.");
             }
 
-            EffectValues[type] = new EffectValue(value);
+            AttributeType = type;
+            AttributeValue = new EffectValue(value);
         }
 
         public abstract object Clone();
 
         public virtual void EnableEffect(IAffectable target, EffectController controller)
         {
-            if (target == null || EffectValues.Count < 1)
+            if (target == null || AttributeType == AttributeType.None)
             {
-                Debug.Log("Effect: Cannot enable effect");
+                Debug.Log($"[Effect] EnableEffect(): Cannot enable effect {ID}, {Type}");
                 return;
             }
-
+            
             Target = target;
             IsEnabled = true;
 
-            if (Target.CharacterType == CharacterType.Player)
+            if (Target?.CharacterType == CharacterType.Player)
             {
                 EventManager.OnNext(Message.OnPlayerEffectChanged);
             }
@@ -107,46 +120,34 @@ namespace CharacterSystem.Effect
 
         public virtual void DisableEffect()
         {
-            if (Target == null)
+            if (Target == null || !IsEnabled)
             {
                 return;
             }
 
+            if (Target.CharacterType == CharacterType.Player)
+            {
+                EventManager.OnNext(Message.OnPlayerEffectChanged);
+            }
+            
+            Target = null;
             IsEnabled = false;
         }
 
-        public List<KeyValuePair<AttributeType, string>> GetEffectInfo()
+        public KeyValuePair<AttributeType, string> GetEffectInfo()
         {
-            var list = new List<KeyValuePair<AttributeType, string>>();
-            foreach (var (key, value) in EffectValues)
+            if (AttributeValue.IsFloat)
             {
-                if (value.IsFloat)
-                {
-                    if (value.CorrectionValue == 0)
-                    {
-                        continue;
-                    }
-
-                    list.Add(new KeyValuePair<AttributeType, string>(
-                        key,
-                        (value.CorrectionValue > 0 ? " + " : " - ") + value.CorrectionValue + "%\n")
+                return new KeyValuePair<AttributeType, string>(
+                    AttributeType,
+                    (AttributeValue.CorrectionValue >= 0 ? " + " : " - ") + AttributeValue.CorrectionValue + "%\n"
                     );
-                }
-                else
-                {
-                    if (value.EffectedValue == 0)
-                    {
-                        continue;
-                    }
-
-                    list.Add(new KeyValuePair<AttributeType, string>(
-                        key,
-                        (value.EffectedValue > 0 ? " + " : " - ") + value.EffectedValue + "%\n")
-                    );
-                }
             }
 
-            return list;
+            return new KeyValuePair<AttributeType, string>(
+                AttributeType,
+                (AttributeValue.EffectedValue >= 0 ? " + " : " - ") + AttributeValue.EffectedValue + "\n"
+            );
         }
 
         protected IEnumerator StartDurationTimer()
@@ -160,6 +161,13 @@ namespace CharacterSystem.Effect
             }
 
             DisableEffect();
+        }
+
+        public override string ToString()
+        {
+            return $"Effect: id({ID}), type({Type}), isPermanent({IsPermanent}), isEnabled({IsEnabled}), " +
+                   $"duration({duration}), coolTime({coolTime}), " +
+                   $"target({Target}), attribute({AttributeType}, value({AttributeValue})";
         }
     }
 }

@@ -7,12 +7,12 @@ using UnityEngine;
 
 namespace CharacterSystem.Character.Editor
 {
-    [CustomEditor(typeof(RangeAttackEnemyCharacter))]
+    [CustomEditor(typeof(DefaultEnemyCharacter))]
     public class EnemyCharacterEditor : UnityEditor.Editor
     {
         private void OnSceneGUI()
         {
-            var character = (RangeAttackEnemyCharacter)target;
+            var character = (DefaultEnemyCharacter)target;
             var position = character.transform.position;
             var forward = character.Forward;
 

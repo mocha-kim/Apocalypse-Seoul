@@ -6,5 +6,7 @@ namespace ItemSystem.Produce
         TheTable,
         AnotherTable,
         TheOtherTable,
+        
+        Field = 1000,
     }
 }

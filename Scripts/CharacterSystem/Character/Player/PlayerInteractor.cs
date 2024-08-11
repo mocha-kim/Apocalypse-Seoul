@@ -1,6 +1,5 @@
 using Core.Interface;
-using Event;
-using Manager;
+using EventSystem;
 using UnityEngine;
 
 namespace CharacterSystem.Character.Player
@@ -21,19 +20,19 @@ namespace CharacterSystem.Character.Player
         
         private void OnTriggerEnter2D(Collider2D other)
         {
-            var temp = other.GetComponent<IInteractable>();
-            if (temp == null)
+            var target = other.GetComponent<IInteractable>();
+            if (target == null)
             {
                 return;
             }
 
-            _target = temp;
+            _target = target;
         }
 
         private void OnTriggerExit2D(Collider2D other)
         {
-            var temp = other.GetComponent<IInteractable>();
-            if (temp == null)
+            var target = other.GetComponent<IInteractable>();
+            if (target == null || target != _target)
             {
                 return;
             }

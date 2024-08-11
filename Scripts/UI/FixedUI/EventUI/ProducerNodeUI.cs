@@ -1,9 +1,8 @@
 using System;
 using DataSystem;
-using Event;
+using EventSystem;
 using ItemSystem.Produce;
 using JetBrains.Annotations;
-using Manager;
 using UniRx;
 using UnityEngine;
 using UnityEngine.UI;

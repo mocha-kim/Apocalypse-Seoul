@@ -1,9 +1,10 @@
+using DataSystem;
 using DataSystem.Database;
-using Event;
+using EventSystem;
+using InputSystem;
 using ItemSystem.Item;
 using ItemSystem.Produce;
 using JetBrains.Annotations;
-using Manager;
 using TMPro;
 using UniRx;
 using UnityEngine;

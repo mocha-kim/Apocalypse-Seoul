@@ -1,8 +1,7 @@
 using System;
 using DataSystem;
 using DataSystem.Database;
-using Event;
-using Manager;
+using EventSystem;
 using Settings.Scene;
 using TMPro;
 using UniRx;

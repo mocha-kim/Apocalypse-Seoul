@@ -1,6 +1,6 @@
 using System;
 using CharacterSystem.Character;
-using Manager;
+using DataSystem;
 using UnityEngine;
 
 namespace DialogSystem

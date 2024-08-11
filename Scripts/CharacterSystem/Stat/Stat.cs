@@ -1,25 +1,20 @@
+using System;
 using System.Collections.Generic;
 using Alpha;
 using Core;
-using Event;
-using Manager;
+using EventSystem;
 using UnityEngine;
 
 namespace CharacterSystem.Stat
 {
+    [Serializable]
     public abstract class Stat
     {
-        private Dictionary<AttributeType, ModifiableInt> _attributes = new();
-
-        public Dictionary<AttributeType, ModifiableInt> Attributes
-        {
-            get => _attributes;
-            protected set => _attributes = value;
-        }
+        public Dictionary<AttributeType, ModifiableInt> Attributes = new();
 
         public int GetAttributeValue(AttributeType type)
         {
-            if (_attributes.TryGetValue(type, out var mValue))
+            if (Attributes.TryGetValue(type, out var mValue))
             {
                 return mValue.ModifiedValue;
             }
@@ -29,7 +24,7 @@ namespace CharacterSystem.Stat
 
         public virtual void SetAttributeValue(AttributeType type, int value)
         {
-            if (!_attributes.TryGetValue(type, out var mValue))
+            if (!Attributes.TryGetValue(type, out var mValue))
             {
                 Debug.LogWarning($"[Stat] SetAttributeValue(): There no type({type})");
                 return;
@@ -39,25 +34,25 @@ namespace CharacterSystem.Stat
             // HP, SP, Hunger, Thirst values' max value == base value
             if (type is AttributeType.Hp or AttributeType.Sp or AttributeType.Hunger or AttributeType.Thirst)
             {
-                var att = _attributes[type];
+                var att = Attributes[type];
                 att.ModifiedValue = att.ModifiedValue > att.BaseValue ? att.BaseValue : att.ModifiedValue;
             }
         }
         
         public virtual void AddAttributeValue(AttributeType type, int value)
         {
-            if (!_attributes.TryGetValue(type, out var mValue))
+            if (!Attributes.TryGetValue(type, out var attribute))
             {
                 Debug.LogWarning($"[Stat] AddAttributeValue(): There no type({type})");
                 return;
             }
-            mValue.ModifiedValue += value;
+            attribute.ModifiedValue += value;
+            attribute.ModifiedValue = Mathf.Max(0, attribute.ModifiedValue);
             
             // HP, SP, Hunger, Thirst values' max value == base value
             if (type is AttributeType.Hp or AttributeType.Sp or AttributeType.Hunger or AttributeType.Thirst)
             {
-                var att = _attributes[type];
-                att.ModifiedValue = att.ModifiedValue > att.BaseValue ? att.BaseValue : att.ModifiedValue;
+                attribute.ModifiedValue = Mathf.Min(attribute.ModifiedValue, attribute.BaseValue);
             }
         }
 
@@ -66,5 +61,7 @@ namespace CharacterSystem.Stat
             // TODO: change base value by level
             EventManager.OnNext(Message.OnPlayerAttributeChanged);
         }
+
+        public abstract Stat Clone();
     }
 }

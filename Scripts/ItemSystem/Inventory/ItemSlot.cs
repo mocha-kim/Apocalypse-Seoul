@@ -5,9 +5,8 @@ using Alpha;
 using CharacterSystem.Effect;
 using DataSystem;
 using DataSystem.Database;
-using Event;
+using EventSystem;
 using ItemSystem.Item;
-using Manager;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -75,7 +74,7 @@ namespace ItemSystem.Inventory
             Amount -= value;
             if (Item is ConsumeItem consumeItem)
             {
-                EventManager.OnNext(Message.OnItemUsed, consumeItem.effectId);
+                EventManager.OnNext(Message.OnItemUsed, consumeItem.effectIds);
                 return true;
             }
             if (Amount <= 0)

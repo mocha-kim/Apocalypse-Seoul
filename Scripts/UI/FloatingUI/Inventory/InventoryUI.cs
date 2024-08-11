@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
-using Event;
-using Manager;
+using DataSystem;
+using EventSystem;
+using InputSystem;
 using UI.FixedUI.EventUI.Deal;
 using UnityEngine;
 
@@ -22,7 +23,7 @@ namespace UI.FloatingUI.Inventory
             base.Init();
 
             // add events
-            EventManager.Subscribe(gameObject, Message.OnUpdateInventory, OnUpdateInventory);
+            EventManager.Subscribe(gameObject, Message.OnUpdateInventory, e => OnUpdateInventory(e));
 
             //slot generate.
             var slotPrefab = typeof(T) == typeof(DealItemSlotUI)

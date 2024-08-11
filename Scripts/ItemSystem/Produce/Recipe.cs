@@ -8,15 +8,22 @@ namespace ItemSystem.Produce
     public class Recipe
     {
         public int id;
+        public bool isActive = false;
         public List<Material> materials = new();
 
-        public Recipe(int id)
+        public Recipe(int id, bool isActive)
         {
             this.id = id;
+            this.isActive = isActive;
         }
         
         public virtual bool IsProducible()
         {
+            if (!isActive)
+            {
+                return false;
+            }
+            
             var hasEnoughItem = true;
             foreach (var material in materials)
             {
@@ -33,6 +40,16 @@ namespace ItemSystem.Produce
                 return;
             }
             materials.Add(new Material(materialId, amount));
+        }
+
+        public override string ToString()
+        {
+            var str = $"Recipe: id({id}), isActive({isActive})";
+            foreach (var material in materials)
+            {
+                str += "\n> " + material;
+            }
+            return str;
         }
     }
 }

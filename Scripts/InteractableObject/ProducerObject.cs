@@ -1,20 +1,24 @@
-using Event;
+using DataSystem;
+using EventSystem;
 using ItemSystem.Produce;
-using Manager;
 using UI;
-using UI.InGameUI;
 using UnityEngine;
 
 namespace InteractableObject
 {
-    public abstract class ProducerObject : InteractableObject
+    public class ProducerObject : InteractableObject
     {
-        protected Producer data;
+        protected Producer data = null;
         private bool _isUIOpened = false;
+
+        [SerializeField] private ProducerType _producerType;
+        
+        protected virtual ProducerType GetProducerType() => _producerType;
+        protected virtual UIType GetUIType() => UIType.ProducerUI;
         
         protected virtual void Start()
         {
-            data = DataManager.GetCurrentProducer(GetProducerType());
+            data ??= DataManager.GetCurrentProducer(GetProducerType());
             if (data == null)
             {
                 gameObject.SetActive(false);
@@ -25,21 +29,17 @@ namespace InteractableObject
             EventManager.Subscribe(gameObject, Message.OnClickProduce, OnClickProduce);
         }
 
-        protected abstract ProducerType GetProducerType();
-        protected abstract UIType GetUItype();
-
         public override void Interact()
         {
             if (_isUIOpened)
             {
-                UIManager.Instance.Close(GetUItype());
-                UIManager.Instance.Close(UIType.StorageUI);
-                _isUIOpened = false;
+                UIManager.Instance.Close(GetUIType());
             }
             else
             {
-                UIManager.Instance.Open(GetUItype());
-                UIManager.Instance.Open(UIType.StorageUI);
+                UIManager.OpenProducerId = data.id;
+                UIManager.OpenProducerType = data.type;
+                UIManager.Instance.Open(GetUIType());
                 _isUIOpened = true;
             }
         }
@@ -79,8 +79,10 @@ namespace InteractableObject
         private void OnUIClosed(EventManager.Event e)
         {
             UIType type = (UIType)e.Args[0];
-            if (type == UIType.StorageUI)
+            if (type == GetUIType())
             {
+                UIManager.OpenProducerId = -1;
+                UIManager.OpenProducerType = null;
                 _isUIOpened = false;
             }
         }
@@ -89,9 +91,7 @@ namespace InteractableObject
         {
             base.OnTriggerExit2D(other);
             
-            UIManager.Instance.Close(GetUItype());
-            UIManager.Instance.Close(UIType.StorageUI);
-            _isUIOpened = false;
+            UIManager.Instance.Close(GetUIType());
         }
     }
 }

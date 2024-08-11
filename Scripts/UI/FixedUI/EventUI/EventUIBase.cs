@@ -1,5 +1,4 @@
-using Event;
-using Manager;
+using EventSystem;
 
 namespace UI.FixedUI.EventUI
 {

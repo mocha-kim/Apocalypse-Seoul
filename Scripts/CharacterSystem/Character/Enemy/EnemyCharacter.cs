@@ -1,50 +1,62 @@
-using System.Collections.Generic;
 using CharacterSystem.Character.Combat;
-using CharacterSystem.Character.Combat.AttackBehavior;
 using CharacterSystem.Character.Enemy.State;
 using CharacterSystem.Character.StateMachine;
 using CharacterSystem.Stat;
 using Core.Interface;
+using DataSystem;
+using DataSystem.Database;
 using UnityEngine;
-using UnityEngine.Serialization;
+using UnityEngine.U2D.Animation;
 
 namespace CharacterSystem.Character.Enemy
 {
     [RequireComponent(typeof(FieldOfView))]
-    public abstract class EnemyCharacter : Character, IHasLogicalForward
+    public abstract partial class EnemyCharacter : Character, IHasLogicalForward
     {
+        [SerializeField] protected int id;
+        protected AttackType AttackType;
+        
+        protected EnemyStat Stat { get; private set; }
         protected StateMachine<EnemyCharacter> StateMachine;
         protected FieldOfView FOV;
 
-        private int hashDirX;
-        private int hashDirY;
-
         public override CharacterType CharacterType => CharacterType.Enemy;
+        
         public Vector3 Forward { get; protected set; } = Vector3.down;
-
-        public EnemyStat Stat { get; protected set; }
-        public Animator Animator { get; protected set; }
         public Transform Target => FOV.ClosestTarget;
         public float DistanceToTarget => FOV.DistanceToTarget;
 
-        protected List<AttackBehavior> _attackBehaviors = new();
+        private Animator _animator;
+        private int _hashDirX;
+        private int _hashDirY;
 
         protected virtual void Awake()
         {
-            hashDirX = Animator.StringToHash("DirX");
-            hashDirY = Animator.StringToHash("DirY");
+            _hashDirX = Animator.StringToHash("DirX");
+            _hashDirY = Animator.StringToHash("DirY");
         }
 
         protected virtual void Start()
         {
+            var data = Database.GetEnemy(id);
+            Stat = data.stat.Clone() as EnemyStat;
+            if (Stat == null)
+            {
+                Debug.LogError("[EnemyCharacter] Start(): Stat data is invalid. This must be fixed.");
+                gameObject.SetActive(false);
+                return;
+            }
+
+            AttackType = data.attacktype;
+            GetComponentInChildren<SpriteLibrary>().spriteLibraryAsset = ResourceManager.GetSpriteLibrary(data.spritePath);
+            
             FOV = GetComponent<FieldOfView>();
 
-            Animator = GetComponentInChildren<Animator>();
-            Animator.SetFloat(hashDirX, Forward.x);
-            Animator.SetFloat(hashDirY, Forward.y);
+            _animator = GetComponentInChildren<Animator>();
+            _animator.SetFloat(_hashDirX, Forward.x);
+            _animator.SetFloat(_hashDirY, Forward.y);
             
-            StateMachine = new StateMachine<EnemyCharacter>(this, new IdleState());
-            StateMachine.AddState(new DeadState());
+            InitStateMachine();
         }
 
         protected virtual void Update()
@@ -60,15 +72,21 @@ namespace CharacterSystem.Character.Enemy
         {
             StateMachine.FixedUpdate();
         }
-
-        public void InitEnemyStat(int hp, int speed, int attack, int defense, int attackSpeed, int attackRange)
+        
+        public virtual void SwitchToIdleFOV()
         {
-            Stat = new EnemyStat(hp, speed, attack, defense, attackSpeed, attackRange);
         }
 
-        public void ChangeState<TState>() where TState : State<EnemyCharacter>
+        public virtual void SwitchToDetectionFov()
         {
-            StateMachine.ChangeState<TState>();
+        }
+        
+        public void FaceTo(Vector3 destination)
+        {
+            Forward = (destination - transform.position).normalized;
+
+            _animator.SetFloat(_hashDirX, Forward.x);
+            _animator.SetFloat(_hashDirY, Forward.y);
         }
 
         private void FaceTarget()
@@ -80,24 +98,33 @@ namespace CharacterSystem.Character.Enemy
 
             Forward = (Target.position - transform.position).normalized;
 
-            Animator.SetFloat(hashDirX, Forward.x);
-            Animator.SetFloat(hashDirY, Forward.y);
+            _animator.SetFloat(_hashDirX, Forward.x);
+            _animator.SetFloat(_hashDirY, Forward.y);
         }
+    }
 
-        public void FaceTo(Vector3 destination)
+    // StateMachine
+    public abstract partial class EnemyCharacter
+    {
+        protected virtual void InitStateMachine()
         {
-            Forward = (destination - transform.position).normalized;
-
-            Animator.SetFloat(hashDirX, Forward.x);
-            Animator.SetFloat(hashDirY, Forward.y);
+            StateMachine = new StateMachine<EnemyCharacter>(this, new IdleState(), _animator);
+            StateMachine.AddState(new DeadState());
         }
-
-        public virtual void SwitchToIdleFOV()
+        
+        protected void ChangeState<TState>() where TState : State<EnemyCharacter>
         {
+            StateMachine.ChangeState<TState>();
         }
-
-        public virtual void SwitchToDetectionFov()
+    }
+    
+    public abstract partial class EnemyCharacter : IMovable
+    {
+        public float MoveSpeed => Stat.GetAttributeValue(AttributeType.Speed) * Constants.Character.MoveSpeedFactor;
+        
+        public void Move()
         {
+            Debug.LogWarning("[DefaultEnemyCharacter] Move(): Enemy character moves on its own mover. This method do nothing");
         }
     }
 }

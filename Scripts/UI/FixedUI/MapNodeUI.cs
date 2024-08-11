@@ -1,7 +1,7 @@
+using DataSystem;
 using DataSystem.Database;
 using DG.Tweening;
-using Event;
-using Manager;
+using EventSystem;
 using Settings.Scene;
 using TMPro;
 using UniRx;

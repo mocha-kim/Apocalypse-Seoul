@@ -1,5 +1,6 @@
+using DataSystem;
+using EventSystem;
 using ItemSystem.Inventory;
-using Manager;
 
 namespace UI.FloatingUI.Inventory
 {

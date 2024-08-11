@@ -1,11 +1,11 @@
-using Event;
-using Manager;
+using EventSystem;
+using InputSystem.UserActionBind;
 using TMPro;
+using UI.Components;
 using UniRx;
 using UniRx.Triggers;
 using UnityEngine;
 using UnityEngine.UI;
-using UserActionBind;
 
 namespace UI.FixedUI.EventUI
 {

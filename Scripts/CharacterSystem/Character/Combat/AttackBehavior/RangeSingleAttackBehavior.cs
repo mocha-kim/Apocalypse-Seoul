@@ -21,13 +21,19 @@ namespace CharacterSystem.Character.Combat.AttackBehavior
             {
                 return;
             }
-            var targetDamageable = ClosestTarget.parent.GetComponent<IDamageable>();
-            if (targetDamageable == null)
+
+            if (ClosestTarget.Damageable == null)
             {
                 return;
             }
-            targetDamageable.Damage(damage);
-            targetDamageable.SetTarget(context);
+            ClosestTarget.Damageable.Damage(damage);
+            ClosestTarget.Damageable.SetTarget(context);
+            
+            if (Effect == null || ClosestTarget.Affectable == null)
+            {
+                return;
+            }
+            ClosestTarget.Affectable.Affect(Effect);
         }
     }
 }

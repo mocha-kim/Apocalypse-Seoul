@@ -1,7 +1,7 @@
 using System.Linq;
-using Event;
+using DataSystem;
+using EventSystem;
 using ItemSystem.Item;
-using Manager;
 
 namespace ItemSystem.Inventory
 {

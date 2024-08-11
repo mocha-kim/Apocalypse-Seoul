@@ -23,6 +23,12 @@ namespace CharacterSystem.Character.Combat.AttackBehavior
             _colliderObject = _attackCollider.gameObject;
         }
 
+        public override void SetEffect(Effect.Effect effect)
+        {
+            base.SetEffect(effect);
+            _attackCollider.SetEffect(effect);
+        }
+
         public override void Attack(int damage, Vector3 attackDirection = default)
         {
             _attackCollider.Attack(damage, attackDirection);

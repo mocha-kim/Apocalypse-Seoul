@@ -1,5 +1,7 @@
 using System;
+using CharacterSystem.Stat;
 using Core.Interface;
+using UnityEngine;
 
 namespace CharacterSystem.Effect
 {
@@ -17,22 +19,23 @@ namespace CharacterSystem.Effect
         public override object Clone()
         {
             var newEffect = new InstantEffect(ID, Type);
-            foreach (var pair in EffectValues)
-            {
-                newEffect.EffectValues[pair.Key] = pair.Value;
-            }
+            newEffect.AttributeType = AttributeType;
+            newEffect.AttributeValue = new EffectValue(AttributeValue);
             return newEffect;
         }
 
         public override void EnableEffect(IAffectable target, EffectController controller)
         {
-            base.EnableEffect(target, controller);
-            
-            foreach (var type in EffectValues.Keys)
+            if (target == null || AttributeType == AttributeType.None)
             {
-                EffectValues[type].CalculateEffectValue(target.GetReferenceValue(type));
-                Target.Affect(type, EffectValues[type].EffectedValue);
+                Debug.Log($"[InstantEffect] EnableEffect(): Cannot enable effect {ID}, {Type}");
+                return;
             }
+            
+            base.EnableEffect(target, controller);
+
+            AttributeValue.CalculateEffectValue(target.GetReferenceValue(AttributeType));
+            target.Affect(AttributeType, AttributeValue.EffectedValue);
             
             DisableEffect();
         }

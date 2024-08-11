@@ -1,8 +1,9 @@
+using DataSystem;
 using DataSystem.Database;
 using ItemSystem.Item;
-using Manager;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace UI.FloatingUI.Tooltip
 {
@@ -53,18 +54,17 @@ namespace UI.FloatingUI.Tooltip
                 return;
             }
 
-            var index = 0;
-            var effectList = Database.GetEffect(consumeItem.effectId)?.GetEffectInfo();
-            if (effectList == null)
+            int index;
+            for (index = 0; index < consumeItem.effectIds.Count; index++)
             {
-                _effectListRoot.SetActive(false);
-                RectTransform.sizeDelta = _offsetSize;
-                return;
-            }
+                var effectInfo = Database.GetEffect(consumeItem.effectIds[index])?.GetEffectInfo();
+                if (effectInfo == null)
+                {
+                    _effectListRoot.SetActive(false);
+                    RectTransform.sizeDelta = _offsetSize;
+                    return;
+                }
 
-            for (index = 0; index < effectList.Count; index++)
-            {
-                var pair = effectList[index];
                 GameObject effectGameObject;
                 if (index < _effectListRoot.transform.childCount)
                 {
@@ -77,9 +77,8 @@ namespace UI.FloatingUI.Tooltip
                     effectGameObject.name += " " + index;
                 }
 
-                // TODO: Attribute icon get.. from where??
-                // _effectIcon.sprite = 
-                effectGameObject.GetComponentInChildren<TextMeshProUGUI>().text = pair.Key + " " + pair.Value;
+                effectGameObject.GetComponentInChildren<Image>().sprite = ResourceManager.GetAttributeSprite(effectInfo.Value.Key);
+                effectGameObject.GetComponentInChildren<TextMeshProUGUI>().text = effectInfo.Value.Key + " " + effectInfo.Value.Value;
                 effectGameObject.GetComponentInChildren<RectTransform>().anchoredPosition = new Vector2(0, -index * _effectInfoUISize.y);
             }
 

@@ -1,7 +1,6 @@
 using System;
-using Event;
+using EventSystem;
 using ItemSystem.Item;
-using Manager;
 using UnityEngine;
 
 namespace UI.FloatingUI.Tooltip

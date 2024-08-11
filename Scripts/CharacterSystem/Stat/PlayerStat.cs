@@ -2,22 +2,26 @@ using System;
 using System.Collections.Generic;
 using Core;
 using DataSystem;
-using Event;
+using EventSystem;
 using ItemSystem.Produce;
-using Manager;
 using UnityEngine;
 
 namespace CharacterSystem.Stat
 {
+    [Serializable]
     public class PlayerStat : Stat
     {
-        public int ActivatedInventorySize = 8;
+        public int activatedInventorySize = 8;
         public Dictionary<ProducerType, int> ProducerLevel = new();
 
         public PlayerStat()
         {
             foreach (AttributeType type in Enum.GetValues(typeof(AttributeType)))
             {
+                if (type < 0)
+                {
+                    continue;
+                }
                 Attributes[type] = new ModifiableInt();
                 Attributes[type].InitValue(Constants.Character.DefaultValue[type]);
             }
@@ -47,9 +51,9 @@ namespace CharacterSystem.Stat
         {
             var str = "[Information] Player Stats\nPlayerStat.GetStatInfo()\n";
             str += "\n===== Attributes Value =====\n";
-            foreach (AttributeType type in Enum.GetValues(typeof(AttributeType)))
+            foreach (var pair in Attributes)
             {
-                str += type + ": " + Attributes[type].ModifiedValue + "/" + Attributes[type].BaseValue + "\n";
+                str += pair.Key + ": " + pair.Value.ModifiedValue + "/" + pair.Value.BaseValue + "\n";
             }
             str += "\n====== Producer Level ======\n";
             foreach (ProducerType type in Enum.GetValues(typeof(ProducerType)))
@@ -58,6 +62,11 @@ namespace CharacterSystem.Stat
             }
 
             return str;
+        }
+        
+        public override Stat Clone()
+        {
+            return new PlayerStat();
         }
     }
 }
